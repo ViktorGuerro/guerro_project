@@ -1,6 +1,7 @@
 (function () {
     const stage = document.getElementById('players-stage');
     const placeholder = document.getElementById('players-placeholder');
+    const sceneLayer = document.getElementById('players-scene-layer');
     const mapImage = document.getElementById('players-map-image');
     const gridLayer = document.getElementById('players-grid-layer');
     const iconsLayer = document.getElementById('players-icons-layer');
@@ -14,9 +15,17 @@
 
         placeholder.classList.add('hidden');
         stage.classList.remove('hidden');
-        mapImage.src = state.active_map.file_path;
-        DndCommon.renderGrid(gridLayer, state.grid_cell_size, state.grid_enabled);
-        DndCommon.renderIcons(iconsLayer, state.icons, state.grid_cell_size, {});
+        DndCommon.renderScene({
+            stage,
+            sceneLayer,
+            mapImage,
+            gridLayer,
+            iconsLayer,
+            mapPath: state.active_map.file_path,
+            gridCellSize: state.grid_cell_size,
+            gridEnabled: state.grid_enabled,
+            icons: state.icons,
+        });
     }
 
     DndCommon.startPolling(render, 700);

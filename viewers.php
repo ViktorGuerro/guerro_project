@@ -18,9 +18,11 @@
     </div>
     <div id="viewers-placeholder" class="placeholder">Подготовка сцены</div>
     <div id="viewers-stage" class="screen-map-stage map-stage hidden">
-        <img id="viewers-map-image" class="map-image" src="" alt="map">
-        <div id="viewers-grid-layer" class="grid-layer"></div>
-        <div id="viewers-icons-layer" class="icons-layer"></div>
+        <div class="scene-layer" id="viewers-scene-layer">
+            <img id="viewers-map-image" class="map-image" src="" alt="map">
+            <div id="viewers-grid-layer" class="grid-layer"></div>
+            <div id="viewers-icons-layer" class="icons-layer"></div>
+        </div>
     </div>
 </div>
 <script src="/assets/js/common.js"></script>

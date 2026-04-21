@@ -105,15 +105,25 @@
         </div>
 
         <div class="panel">
+            <h3>Диагностика сцены</h3>
+            <div class="form-row">
+                <label><input id="scene-debug-toggle" type="checkbox"> Показать диагностический слой</label>
+            </div>
+        </div>
+
+        <div class="panel">
             <h3>Заметки мастера</h3>
             <textarea id="notes" placeholder="Только локально в браузере"></textarea>
         </div>
     </div>
 
     <div class="map-stage" id="master-map-stage">
-        <img id="master-map-image" class="map-image" src="" alt="map">
-        <div id="master-grid-layer" class="grid-layer"></div>
-        <div id="master-icons-layer" class="icons-layer"></div>
+        <div class="scene-layer" id="master-scene-layer">
+            <img id="master-map-image" class="map-image" src="" alt="map">
+            <div id="master-grid-layer" class="grid-layer"></div>
+            <div id="master-icons-layer" class="icons-layer"></div>
+            <div id="master-debug-layer" class="debug-layer hidden"></div>
+        </div>
     </div>
 </div>
 <script src="/assets/js/common.js"></script>

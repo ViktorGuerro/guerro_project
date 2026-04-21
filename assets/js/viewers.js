@@ -1,6 +1,7 @@
 (function () {
     const stage = document.getElementById('viewers-stage');
     const placeholder = document.getElementById('viewers-placeholder');
+    const sceneLayer = document.getElementById('viewers-scene-layer');
     const mapImage = document.getElementById('viewers-map-image');
     const gridLayer = document.getElementById('viewers-grid-layer');
     const iconsLayer = document.getElementById('viewers-icons-layer');
@@ -15,10 +16,17 @@
             placeholder.classList.add('hidden');
             stage.classList.remove('hidden');
 
-            mapImage.src = state.active_map.file_path;
-
-            DndCommon.renderGrid(gridLayer, state.grid_cell_size, state.grid_enabled);
-            DndCommon.renderIcons(iconsLayer, state.icons, state.grid_cell_size);
+            DndCommon.renderScene({
+                stage,
+                sceneLayer,
+                mapImage,
+                gridLayer,
+                iconsLayer,
+                mapPath: state.active_map.file_path,
+                gridCellSize: state.grid_cell_size,
+                gridEnabled: state.grid_enabled,
+                icons: state.icons,
+            });
         }
 
         if (state.dc_visible && state.dc_value !== null) {

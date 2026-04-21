@@ -2,6 +2,7 @@
     const stateEls = {
         mapImage: document.getElementById('master-map-image'),
         mapStage: document.getElementById('master-map-stage'),
+        sceneLayer: document.getElementById('master-scene-layer'),
         gridLayer: document.getElementById('master-grid-layer'),
         iconsLayer: document.getElementById('master-icons-layer'),
         gridEnabled: document.getElementById('grid-enabled'),
@@ -30,6 +31,8 @@
         selectedIconGridY: document.getElementById('selected-icon-grid-y'),
         selectedIconSizeCells: document.getElementById('selected-icon-size-cells'),
         selectedIconDelete: document.getElementById('selected-icon-delete'),
+        sceneDebugToggle: document.getElementById('scene-debug-toggle'),
+        debugLayer: document.getElementById('master-debug-layer'),
     };
 
     let latestState = null;
@@ -166,17 +169,10 @@
         fillMapList();
         fillEntityList(state);
 
-        if (state.active_map) {
-            stateEls.mapImage.src = state.active_map.file_path;
-        } else {
-            stateEls.mapImage.removeAttribute('src');
-        }
-
         if (!gridFormDirty) {
             stateEls.gridEnabled.checked = Boolean(state.grid_enabled);
             stateEls.gridCellSize.value = state.grid_cell_size;
         }
-        DndCommon.renderGrid(stateEls.gridLayer, state.grid_cell_size, Boolean(state.grid_enabled));
 
         const selected = state.icons.find(i => Number(i.id) === Number(selectedIconId)) || null;
         if (!selected && selectedIconId !== null) {
@@ -185,22 +181,67 @@
             setSelectedIcon(selected);
         }
 
-        DndCommon.renderIcons(stateEls.iconsLayer, state.icons, state.grid_cell_size, {
-            interactive: true,
-            selectedIconId,
-            showSelection: true,
-            onIconClick: icon => setSelectedIcon(icon),
-            onDrop: async e => {
-                e.preventDefault();
-                const id = Number(e.dataTransfer.getData('text/plain'));
-                const rect = stateEls.iconsLayer.getBoundingClientRect();
-                const x = Math.max(0, Math.round((e.clientX - rect.left) / state.grid_cell_size));
-                const y = Math.max(0, Math.round((e.clientY - rect.top) / state.grid_cell_size));
-                await postForm('/api/move_icon.php', { id, grid_x: x, grid_y: y });
-                selectedIconId = id;
-                render(await DndCommon.fetchState());
+        const metrics = DndCommon.renderScene({
+            stage: stateEls.mapStage,
+            sceneLayer: stateEls.sceneLayer,
+            mapImage: stateEls.mapImage,
+            gridLayer: stateEls.gridLayer,
+            iconsLayer: stateEls.iconsLayer,
+            mapPath: state.active_map ? state.active_map.file_path : '',
+            gridCellSize: state.grid_cell_size,
+            gridEnabled: Boolean(state.grid_enabled),
+            icons: state.icons,
+            iconOptions: {
+                interactive: true,
+                selectedIconId,
+                showSelection: true,
+                onIconClick: icon => setSelectedIcon(icon),
+                onDrop: async e => {
+                    e.preventDefault();
+                    const id = Number(e.dataTransfer.getData('text/plain'));
+                    const rect = stateEls.sceneLayer.getBoundingClientRect();
+                    const scaleX = rect.width / Math.max(1, stateEls.sceneLayer.offsetWidth);
+                    const scaleY = rect.height / Math.max(1, stateEls.sceneLayer.offsetHeight);
+                    const x = Math.max(0, Math.round((e.clientX - rect.left) / (state.grid_cell_size * scaleX)));
+                    const y = Math.max(0, Math.round((e.clientY - rect.top) / (state.grid_cell_size * scaleY)));
+                    await postForm('/api/move_icon.php', { id, grid_x: x, grid_y: y });
+                    selectedIconId = id;
+                    render(await DndCommon.fetchState());
+                }
             }
         });
+
+        renderSceneDebug(state, metrics);
+    }
+
+
+    function renderSceneDebug(state, metrics) {
+        const enabled = Boolean(stateEls.sceneDebugToggle?.checked);
+        if (!enabled || !metrics || !state.active_map) {
+            stateEls.debugLayer.classList.add('hidden');
+            stateEls.debugLayer.innerHTML = '';
+            return;
+        }
+
+        stateEls.debugLayer.classList.remove('hidden');
+        const cols = Math.ceil(metrics.mapWidth / state.grid_cell_size);
+        const rows = Math.ceil(metrics.mapHeight / state.grid_cell_size);
+        const limit = 450;
+
+        const labels = [];
+        for (let y = 0; y < rows; y += 1) {
+            for (let x = 0; x < cols; x += 1) {
+                if (labels.length >= limit) {
+                    break;
+                }
+                labels.push(`<span class="debug-cell-label" style="left:${x * state.grid_cell_size}px;top:${y * state.grid_cell_size}px">${x},${y}</span>`);
+            }
+            if (labels.length >= limit) {
+                break;
+            }
+        }
+
+        stateEls.debugLayer.innerHTML = labels.join('');
     }
 
     function changeInputValue(inputId, delta, min = null, max = null) {
@@ -440,7 +481,7 @@
 
         stateEls.mapStage.addEventListener('click', e => {
             pauseUpdates(1200);
-            if (e.target === stateEls.iconsLayer || e.target === stateEls.gridLayer || e.target === stateEls.mapImage || e.target === stateEls.mapStage) {
+            if (e.target === stateEls.iconsLayer || e.target === stateEls.gridLayer || e.target === stateEls.mapImage || e.target === stateEls.sceneLayer || e.target === stateEls.mapStage) {
                 setSelectedIcon(null);
             }
         });
@@ -454,6 +495,12 @@
 
         document.querySelector('.master-controls')?.addEventListener('pointerdown', () => {
             pauseUpdates(2500);
+        });
+
+        stateEls.sceneDebugToggle?.addEventListener('change', () => {
+            if (latestState) {
+                render(latestState);
+            }
         });
 
         const notes = document.getElementById('notes');

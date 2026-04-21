@@ -89,6 +89,71 @@
         }
     }
 
+
+    function renderScene(config) {
+        const {
+            stage,
+            sceneLayer,
+            mapImage,
+            gridLayer,
+            iconsLayer,
+            mapPath,
+            gridCellSize,
+            gridEnabled,
+            icons,
+            iconOptions = {},
+            onSceneMetrics = null,
+        } = config;
+
+        if (!stage || !sceneLayer || !mapImage || !gridLayer || !iconsLayer) {
+            return null;
+        }
+
+        if (mapPath) {
+            if (mapImage.getAttribute('src') !== mapPath) {
+                mapImage.src = mapPath;
+            }
+        } else {
+            mapImage.removeAttribute('src');
+            sceneLayer.style.width = '0px';
+            sceneLayer.style.height = '0px';
+            renderGrid(gridLayer, gridCellSize, false);
+            iconsLayer.innerHTML = '';
+            return null;
+        }
+
+        const mapWidth = Math.max(1, mapImage.naturalWidth || stage.clientWidth || 1);
+        const mapHeight = Math.max(1, mapImage.naturalHeight || stage.clientHeight || 1);
+        sceneLayer.style.width = `${mapWidth}px`;
+        sceneLayer.style.height = `${mapHeight}px`;
+
+        const stageWidth = Math.max(1, stage.clientWidth || mapWidth);
+        const stageHeight = Math.max(1, stage.clientHeight || mapHeight);
+        const scale = Math.min(stageWidth / mapWidth, stageHeight / mapHeight);
+        const offsetX = Math.floor((stageWidth - mapWidth * scale) / 2);
+        const offsetY = Math.floor((stageHeight - mapHeight * scale) / 2);
+        sceneLayer.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+
+        renderGrid(gridLayer, gridCellSize, Boolean(gridEnabled));
+        renderIcons(iconsLayer, icons, gridCellSize, iconOptions);
+
+        const metrics = {
+            mapWidth,
+            mapHeight,
+            stageWidth,
+            stageHeight,
+            scale,
+            offsetX,
+            offsetY,
+        };
+
+        if (typeof onSceneMetrics === 'function') {
+            onSceneMetrics(metrics);
+        }
+
+        return metrics;
+    }
+
     function startPolling(callback, interval = 700) {
         let timer = null;
         const run = async () => {
@@ -106,5 +171,5 @@
         return () => clearTimeout(timer);
     }
 
-    window.DndCommon = { escapeHtml, apiGet, apiPost, fetchState, renderGrid, renderIcons, startPolling };
+    window.DndCommon = { escapeHtml, apiGet, apiPost, fetchState, renderGrid, renderIcons, renderScene, startPolling };
 })();
