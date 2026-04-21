@@ -84,6 +84,17 @@
         return payload.data;
     }
 
+
+    function formatSideLabel(side) {
+        const labels = {
+            hero: 'Герой',
+            enemy: 'Враг',
+            boss: 'Босс',
+            npc: 'Нейтрал',
+        };
+        return labels[side] || side || '-';
+    }
+
     function setEntityEditing(entity = null) {
         editingEntityId = entity ? Number(entity.id) : null;
         if (!entity) {
@@ -118,7 +129,7 @@
         const entity = latestState?.entities.find(e => Number(e.id) === Number(icon.entity_id));
         stateEls.selectedIconPanel.classList.remove('hidden');
         stateEls.selectedIconMeta.textContent = [
-            `#${icon.id} — ${icon.name || 'Без имени'} (${entity?.side || '-'})`,
+            `#${icon.id} — ${icon.name || 'Без имени'} (${formatSideLabel(entity?.side)})`,
             `Координаты: (${icon.grid_x}, ${icon.grid_y}), size ${icon.size_cells}`,
             `image_path: ${icon.image_path ? 'есть' : 'нет'}`
         ].join(' • ');
@@ -184,7 +195,7 @@
     function fillEntityList(state) {
         const entities = state.entities;
         stateEls.entityList.innerHTML = entities.map(e => `<div class="list-item entity-list-item">
-            <span class="item-title">${DndCommon.escapeHtml(e.name)} (${e.side}) • КД ${e.armor_class ?? '-'} • ХП ${e.hp_current ?? '-'}${e.hp_max !== null ? `/${e.hp_max}` : ''}</span>
+            <span class="item-title">${DndCommon.escapeHtml(e.name)} (${formatSideLabel(e.side)}) • КД ${e.armor_class ?? '-'} • ХП ${e.hp_current ?? '-'}${e.hp_max !== null ? `/${e.hp_max}` : ''}</span>
             <div class="item-controls">
                 <div class="item-menu" data-type="entity" data-id="${e.id}">
                     <button type="button" class="menu-toggle" aria-label="Действия сущности">...</button>
@@ -230,7 +241,7 @@
             const entity = state.entities.find(e => Number(e.id) === Number(icon.entity_id));
             const selectedClass = Number(icon.id) === Number(selectedIconId) ? ' selected' : '';
             return `<div class="scene-icon-row${selectedClass}" data-id="${icon.id}">
-                <div class="scene-icon-meta">#${icon.id} ${DndCommon.escapeHtml(icon.name || 'Без имени')} (${DndCommon.escapeHtml(entity?.side || '-')}) • (${icon.grid_x}, ${icon.grid_y}) • size ${icon.size_cells} • visible ${Number(icon.is_visible) === 1 ? 'yes' : 'no'}</div>
+                <div class="scene-icon-meta">#${icon.id} ${DndCommon.escapeHtml(icon.name || 'Без имени')} (${DndCommon.escapeHtml(formatSideLabel(entity?.side))}) • (${icon.grid_x}, ${icon.grid_y}) • size ${icon.size_cells} • visible ${Number(icon.is_visible) === 1 ? 'yes' : 'no'}</div>
                 <div class="scene-icon-actions">
                     <button type="button" class="scene-select secondary" data-id="${icon.id}">Выбрать</button>
                     <button type="button" class="scene-center secondary" data-id="${icon.id}">В центр</button>
@@ -332,7 +343,7 @@
         visibleIcons.forEach(icon => {
             const entity = state.entities.find(e => Number(e.id) === Number(icon.entity_id));
             labels.push(`<div class="debug-icon-box" style="left:${Number(icon.grid_x) * state.grid_cell_size}px;top:${Number(icon.grid_y) * state.grid_cell_size}px;width:${Number(icon.size_cells) * state.grid_cell_size}px;height:${Number(icon.size_cells) * state.grid_cell_size}px">
-                <span class="debug-icon-meta">#${icon.id} ${DndCommon.escapeHtml(icon.name || 'Без имени')} (${DndCommon.escapeHtml(entity?.side || '-')}) (${icon.grid_x},${icon.grid_y}) size ${icon.size_cells}</span>
+                <span class="debug-icon-meta">#${icon.id} ${DndCommon.escapeHtml(icon.name || 'Без имени')} (${DndCommon.escapeHtml(formatSideLabel(entity?.side))}) (${icon.grid_x},${icon.grid_y}) size ${icon.size_cells}</span>
             </div>`);
         });
 

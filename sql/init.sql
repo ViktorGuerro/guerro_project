@@ -35,7 +35,7 @@ VALUES (1, NULL, NULL);
 CREATE TABLE entities (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    side ENUM('hero', 'enemy') NOT NULL,
+    side ENUM('hero', 'enemy', 'boss', 'npc') NOT NULL,
     image_path VARCHAR(500) DEFAULT NULL,
     armor_class TINYINT UNSIGNED DEFAULT NULL,
     hp_current INT DEFAULT NULL,

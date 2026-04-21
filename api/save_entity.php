@@ -18,7 +18,7 @@ $isVisible = post_int('is_visible', 1) ?? 1;
 if ($name === null) {
     api_error('name_required');
 }
-if (!in_array($side, ['hero', 'enemy'], true)) {
+if (!in_array($side, ['hero', 'enemy', 'boss', 'npc'], true)) {
     api_error('invalid_side');
 }
 

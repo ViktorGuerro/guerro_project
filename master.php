@@ -81,7 +81,7 @@
                 <div class="form-row">
                     <div class="form-field">
                         <label for="entity-side" class="field-label">Сторона</label>
-                        <select id="entity-side" name="side"><option value="hero">hero</option><option value="enemy">enemy</option></select>
+                        <select id="entity-side" name="side"><option value="hero">Герой</option><option value="enemy">Враг</option><option value="boss">Босс</option><option value="npc">Нейтрал</option></select>
                     </div>
                 </div>
                 <div class="form-row">

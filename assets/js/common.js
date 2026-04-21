@@ -57,6 +57,8 @@
             const div = document.createElement('div');
             div.className = 'icon';
             div.dataset.id = icon.id;
+            div.dataset.side = icon.side || '';
+            div.classList.add(`icon-side-${icon.side || 'unknown'}`);
             const gridX = Number.isFinite(Number(icon.grid_x)) ? Number(icon.grid_x) : 0;
             const gridY = Number.isFinite(Number(icon.grid_y)) ? Number(icon.grid_y) : 0;
             const sizeCells = Math.max(1, Number(icon.size_cells) || 1);
