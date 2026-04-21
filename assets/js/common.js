@@ -29,15 +29,56 @@
         return payload.data;
     }
 
-    function renderGrid(layer, cellSize, enabled = true) {
+    function getGridMetrics(stage, mapImage, activeMap) {
+        const gridCols = Math.max(1, Number(activeMap?.grid_cols) || 1);
+        const gridRows = Math.max(1, Number(activeMap?.grid_rows) || 1);
+
+        const mapWidth = Math.max(1, mapImage?.naturalWidth || stage?.clientWidth || 1);
+        const mapHeight = Math.max(1, mapImage?.naturalHeight || stage?.clientHeight || 1);
+        const stageWidth = Math.max(1, stage?.clientWidth || mapWidth);
+        const stageHeight = Math.max(1, stage?.clientHeight || mapHeight);
+        const scale = Math.min(stageWidth / mapWidth, stageHeight / mapHeight);
+        const displayedMapWidth = mapWidth * scale;
+        const displayedMapHeight = mapHeight * scale;
+        const cellWidth = displayedMapWidth / gridCols;
+        const cellHeight = displayedMapHeight / gridRows;
+
+        return {
+            mapWidth,
+            mapHeight,
+            stageWidth,
+            stageHeight,
+            scale,
+            displayedMapWidth,
+            displayedMapHeight,
+            gridCols,
+            gridRows,
+            cellWidth,
+            cellHeight,
+        };
+    }
+
+    function renderGrid(layer, options = {}) {
+        const {
+            enabled = true,
+            mapWidth = 1,
+            mapHeight = 1,
+            gridCols = 1,
+            gridRows = 1,
+        } = options;
+
         layer.style.display = enabled ? 'block' : 'none';
         if (!enabled) {
             return;
         }
-        layer.style.backgroundSize = `${cellSize}px ${cellSize}px`;
+        const safeCols = Math.max(1, Number(gridCols) || 1);
+        const safeRows = Math.max(1, Number(gridRows) || 1);
+        const cellWidth = Math.max(1, Number(mapWidth) / safeCols);
+        const cellHeight = Math.max(1, Number(mapHeight) / safeRows);
+        layer.style.backgroundSize = `${cellWidth}px ${cellHeight}px`;
     }
 
-    function renderIcons(layer, icons, cellSize, options = {}) {
+    function renderIcons(layer, icons, gridMetrics, options = {}) {
         const {
             interactive = false,
             onDrop = null,
@@ -47,6 +88,8 @@
             debug = false,
             debugFormatter = null,
         } = options;
+        const safeCellWidth = Math.max(1, Number(gridMetrics?.cellWidth) || 1);
+        const safeCellHeight = Math.max(1, Number(gridMetrics?.cellHeight) || 1);
 
         layer.innerHTML = '';
         const total = Array.isArray(icons) ? icons.length : 0;
@@ -60,10 +103,10 @@
             const gridX = Number.isFinite(Number(icon.grid_x)) ? Number(icon.grid_x) : 0;
             const gridY = Number.isFinite(Number(icon.grid_y)) ? Number(icon.grid_y) : 0;
             const sizeCells = Math.max(1, Number(icon.size_cells) || 1);
-            div.style.left = `${gridX * cellSize}px`;
-            div.style.top = `${gridY * cellSize}px`;
-            div.style.width = `${cellSize * sizeCells}px`;
-            div.style.height = `${cellSize * sizeCells}px`;
+            div.style.left = `${gridX * safeCellWidth}px`;
+            div.style.top = `${gridY * safeCellHeight}px`;
+            div.style.width = `${safeCellWidth * sizeCells}px`;
+            div.style.height = `${safeCellHeight * sizeCells}px`;
 
             if (showSelection && selectedIconId !== null && Number(icon.id) === Number(selectedIconId)) {
                 div.classList.add('selected');
@@ -126,8 +169,8 @@
             gridLayer,
             iconsLayer,
             mapPath,
-            gridCellSize,
             gridEnabled,
+            activeMap,
             icons,
             iconOptions = {},
             onSceneMetrics = null,
@@ -151,27 +194,31 @@
             mapImage.removeAttribute('src');
             sceneLayer.style.width = '0px';
             sceneLayer.style.height = '0px';
-            renderGrid(gridLayer, gridCellSize, false);
+            renderGrid(gridLayer, { enabled: false });
             iconsLayer.innerHTML = '';
             return null;
         }
 
-        const mapWidth = Math.max(1, mapImage.naturalWidth || stage.clientWidth || 1);
-        const mapHeight = Math.max(1, mapImage.naturalHeight || stage.clientHeight || 1);
+        const gridMetrics = getGridMetrics(stage, mapImage, activeMap);
+        const { mapWidth, mapHeight, scale, stageWidth, stageHeight } = gridMetrics;
         sceneLayer.style.width = `${mapWidth}px`;
         sceneLayer.style.height = `${mapHeight}px`;
 
-        const stageWidth = Math.max(1, stage.clientWidth || mapWidth);
-        const stageHeight = Math.max(1, stage.clientHeight || mapHeight);
-        const scale = Math.min(stageWidth / mapWidth, stageHeight / mapHeight);
         const offsetX = Math.floor((stageWidth - mapWidth * scale) / 2);
         const offsetY = Math.floor((stageHeight - mapHeight * scale) / 2);
         sceneLayer.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
 
-        renderGrid(gridLayer, gridCellSize, Boolean(gridEnabled));
-        const iconStats = renderIcons(iconsLayer, icons, gridCellSize, iconOptions);
+        renderGrid(gridLayer, {
+            enabled: Boolean(gridEnabled),
+            mapWidth,
+            mapHeight,
+            gridCols: gridMetrics.gridCols,
+            gridRows: gridMetrics.gridRows,
+        });
+        const iconStats = renderIcons(iconsLayer, icons, gridMetrics, iconOptions);
 
         const metrics = {
+            ...gridMetrics,
             mapWidth,
             mapHeight,
             stageWidth,
@@ -206,5 +253,5 @@
         return () => clearTimeout(timer);
     }
 
-    window.DndCommon = { escapeHtml, apiGet, apiPost, fetchState, renderGrid, renderIcons, renderScene, startPolling };
+    window.DndCommon = { escapeHtml, apiGet, apiPost, fetchState, getGridMetrics, renderGrid, renderIcons, renderScene, startPolling };
 })();

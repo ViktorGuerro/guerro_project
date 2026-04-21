@@ -3,6 +3,8 @@ CREATE TABLE maps (
     title VARCHAR(255) NOT NULL,
     file_path VARCHAR(500) NOT NULL,
     original_name VARCHAR(255) DEFAULT NULL,
+    grid_cols INT NOT NULL DEFAULT 32,
+    grid_rows INT NOT NULL DEFAULT 18,
     uploaded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     is_active TINYINT(1) NOT NULL DEFAULT 0
 );

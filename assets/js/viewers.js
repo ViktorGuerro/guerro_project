@@ -23,8 +23,8 @@
                 gridLayer,
                 iconsLayer,
                 mapPath: state.active_map.file_path,
-                gridCellSize: state.grid_cell_size,
                 gridEnabled: state.grid_enabled,
+                activeMap: state.active_map,
                 icons: state.icons,
             });
         }

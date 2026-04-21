@@ -24,6 +24,10 @@
             <form id="map-upload-form" enctype="multipart/form-data">
                 <div class="form-row"><input type="text" name="title" placeholder="Название карты" required></div>
                 <div class="form-row"><input type="file" name="map_file" accept=".jpg,.jpeg,.png,.webp" required></div>
+                <div class="form-row">
+                    <input type="number" name="grid_cols" min="1" max="500" value="32" placeholder="Клеток по ширине" required>
+                    <input type="number" name="grid_rows" min="1" max="500" value="18" placeholder="Клеток по высоте" required>
+                </div>
                 <div class="form-row"><button type="submit">Загрузить</button></div>
             </form>
             <div id="map-list"></div>
@@ -35,7 +39,6 @@
                 <div class="form-row">
                     <label><input id="grid-enabled" name="grid_enabled" type="checkbox" checked> Показывать сетку</label>
                 </div>
-                <div class="form-row"><input id="grid-cell-size" name="grid_cell_size" type="number" min="20" max="300" value="70" placeholder="Размер клетки, px"></div>
                 <div class="form-row"><button type="submit">Применить</button></div>
             </form>
         </div>

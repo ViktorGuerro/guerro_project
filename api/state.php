@@ -8,7 +8,7 @@ require __DIR__ . '/../inc/helpers.php';
 $config = require __DIR__ . '/../inc/config.php';
 
 $stateStmt = $pdo->query(
-    'SELECT gs.mode, gs.grid_enabled, gs.grid_cell_size, gs.active_map_id, m.id AS map_id, m.title AS map_title, m.file_path AS map_file_path
+    'SELECT gs.mode, gs.grid_enabled, gs.grid_cell_size, gs.active_map_id, m.id AS map_id, m.title AS map_title, m.file_path AS map_file_path, m.grid_cols AS map_grid_cols, m.grid_rows AS map_grid_rows
      FROM game_state gs
      LEFT JOIN maps m ON m.id = gs.active_map_id
      WHERE gs.id = 1'
@@ -34,6 +34,8 @@ api_ok([
         'id' => (int) $state['map_id'],
         'title' => $state['map_title'],
         'file_path' => $state['map_file_path'],
+        'grid_cols' => (int) ($state['map_grid_cols'] ?? 32),
+        'grid_rows' => (int) ($state['map_grid_rows'] ?? 18),
     ] : null,
     'grid_enabled' => (bool) $state['grid_enabled'],
     'grid_cell_size' => (int) $state['grid_cell_size'],

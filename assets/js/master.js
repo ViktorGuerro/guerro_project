@@ -6,7 +6,6 @@
         gridLayer: document.getElementById('master-grid-layer'),
         iconsLayer: document.getElementById('master-icons-layer'),
         gridEnabled: document.getElementById('grid-enabled'),
-        gridCellSize: document.getElementById('grid-cell-size'),
         mapList: document.getElementById('map-list'),
         entityList: document.getElementById('entity-list'),
         addIconEntity: document.getElementById('add-icon-entity'),
@@ -44,7 +43,6 @@
     let gridFormDirty = false;
     let pauseUpdatesUntil = 0;
 
-
     function pauseUpdates(ms = 1800) {
         pauseUpdatesUntil = Math.max(pauseUpdatesUntil, Date.now() + ms);
     }
@@ -59,16 +57,11 @@
 
     function toggleActionMenu(button) {
         const container = button.closest('.item-menu');
-        if (!container) {
-            return;
-        }
-
+        if (!container) return;
         const isOpen = container.classList.contains('open');
         pauseUpdates(3500);
         closeAllActionMenus();
-        if (!isOpen) {
-            container.classList.add('open');
-        }
+        if (!isOpen) container.classList.add('open');
     }
 
     async function postForm(url, entries, isMultipart = false) {
@@ -124,30 +117,25 @@
         stateEls.selectedIconSizeCells.value = icon.size_cells;
     }
 
-    function getSceneCenterCell(state, metrics, icon = null) {
-        const sceneWidth = metrics?.mapWidth || stateEls.sceneLayer.offsetWidth || 1;
-        const sceneHeight = metrics?.mapHeight || stateEls.sceneLayer.offsetHeight || 1;
-        const cols = Math.max(1, Math.floor(sceneWidth / state.grid_cell_size));
-        const rows = Math.max(1, Math.floor(sceneHeight / state.grid_cell_size));
+    function getSceneCenterCell(state, icon = null) {
+        const cols = Math.max(1, Number(state.active_map?.grid_cols) || 1);
+        const rows = Math.max(1, Number(state.active_map?.grid_rows) || 1);
+        const sizeCells = Math.max(1, Number(icon?.size_cells) || 1);
         const centerX = Math.floor(cols / 2);
         const centerY = Math.floor(rows / 2);
 
         return {
-            grid_x: Math.max(0, centerX),
-            grid_y: Math.max(0, centerY),
-            size_cells: Number(icon?.size_cells || 1),
+            grid_x: Math.max(0, Math.min(centerX, cols - sizeCells)),
+            grid_y: Math.max(0, Math.min(centerY, rows - sizeCells)),
+            size_cells: sizeCells,
         };
     }
 
-    async function centerIconById(iconId, metrics = null) {
-        if (!latestState) {
-            return;
-        }
+    async function centerIconById(iconId) {
+        if (!latestState) return;
         const icon = latestState.icons.find(i => Number(i.id) === Number(iconId));
-        if (!icon) {
-            return;
-        }
-        const center = getSceneCenterCell(latestState, metrics, icon);
+        if (!icon) return;
+        const center = getSceneCenterCell(latestState, icon);
         await postForm('/api/update_icon.php', {
             id: icon.id,
             grid_x: center.grid_x,
@@ -161,7 +149,7 @@
         DndCommon.apiGet('/api/list_maps.php').then(payload => {
             const maps = payload.ok ? payload.data.maps : [];
             stateEls.mapList.innerHTML = maps.map(m => `<div class="list-item map-list-item">
-                <span class="item-title">${DndCommon.escapeHtml(m.title)}</span>
+                <span class="item-title">${DndCommon.escapeHtml(m.title)} • ${Number(m.grid_cols) || 32} × ${Number(m.grid_rows) || 18}</span>
                 <div class="item-controls">
                     ${m.is_active
             ? '<span class="status-badge">Активна</span>'
@@ -170,8 +158,16 @@
                         <button type="button" class="menu-toggle" aria-label="Действия карты">...</button>
                         <div class="dropdown-menu">
                             <button data-id="${m.id}" data-title="${DndCommon.escapeHtml(m.title)}" class="rename-map" type="button">Переименовать</button>
+                            <button data-id="${m.id}" class="edit-map-grid" type="button">Настроить сетку</button>
                             <button data-id="${m.id}" class="delete-map danger" type="button">Удалить</button>
                         </div>
+                    </div>
+                </div>
+                <div class="map-grid-editor hidden" id="map-grid-editor-${m.id}">
+                    <div class="form-row">
+                        <input type="number" class="map-grid-cols" min="1" max="500" value="${Number(m.grid_cols) || 32}" placeholder="Клеток по ширине">
+                        <input type="number" class="map-grid-rows" min="1" max="500" value="${Number(m.grid_rows) || 18}" placeholder="Клеток по высоте">
+                        <button data-id="${m.id}" class="save-map-grid secondary" type="button">Сохранить</button>
                     </div>
                 </div>
             </div>`).join('');
@@ -200,7 +196,7 @@
         }
     }
 
-    function renderSceneIconsList(state, metrics) {
+    function renderSceneIconsList(state) {
         const icons = state.icons || [];
         if (!icons.length) {
             stateEls.sceneIconsList.innerHTML = '<div class="scene-icon-meta">Иконок нет.</div>';
@@ -223,17 +219,13 @@
 
     function render(state) {
         latestState = state;
-
-        if (isUpdatesPaused()) {
-            return;
-        }
+        if (isUpdatesPaused()) return;
 
         fillMapList();
         fillEntityList(state);
 
         if (!gridFormDirty) {
             stateEls.gridEnabled.checked = Boolean(state.grid_enabled);
-            stateEls.gridCellSize.value = state.grid_cell_size;
         }
 
         const selected = state.icons.find(i => Number(i.id) === Number(selectedIconId)) || null;
@@ -251,8 +243,8 @@
             gridLayer: stateEls.gridLayer,
             iconsLayer: stateEls.iconsLayer,
             mapPath: state.active_map ? state.active_map.file_path : '',
-            gridCellSize: state.grid_cell_size,
             gridEnabled: Boolean(state.grid_enabled),
+            activeMap: state.active_map,
             icons: state.icons,
             iconOptions: {
                 interactive: true,
@@ -265,10 +257,16 @@
                     e.preventDefault();
                     const id = Number(e.dataTransfer.getData('text/plain'));
                     const rect = stateEls.sceneLayer.getBoundingClientRect();
-                    const scaleX = rect.width / Math.max(1, stateEls.sceneLayer.offsetWidth);
-                    const scaleY = rect.height / Math.max(1, stateEls.sceneLayer.offsetHeight);
-                    const x = Math.max(0, Math.round((e.clientX - rect.left) / (state.grid_cell_size * scaleX)));
-                    const y = Math.max(0, Math.round((e.clientY - rect.top) / (state.grid_cell_size * scaleY)));
+                    const relativeX = Math.max(0, e.clientX - rect.left);
+                    const relativeY = Math.max(0, e.clientY - rect.top);
+                    const cols = Math.max(1, Number(state.active_map?.grid_cols) || 1);
+                    const rows = Math.max(1, Number(state.active_map?.grid_rows) || 1);
+                    const cellWidth = rect.width / cols;
+                    const cellHeight = rect.height / rows;
+                    const icon = state.icons.find(row => Number(row.id) === id);
+                    const sizeCells = Math.max(1, Number(icon?.size_cells) || 1);
+                    const x = Math.max(0, Math.min(cols - sizeCells, Math.round(relativeX / Math.max(1, cellWidth))));
+                    const y = Math.max(0, Math.min(rows - sizeCells, Math.round(relativeY / Math.max(1, cellHeight))));
                     await postForm('/api/move_icon.php', { id, grid_x: x, grid_y: y });
                     selectedIconId = id;
                     render(await DndCommon.fetchState());
@@ -277,10 +275,9 @@
             onImageLoad: async () => render(await DndCommon.fetchState()),
         });
 
-        renderSceneIconsList(state, metrics);
+        renderSceneIconsList(state);
         renderSceneDebug(state, metrics);
     }
-
 
     function renderSceneDebug(state, metrics) {
         const enabled = Boolean(stateEls.sceneDebugToggle?.checked);
@@ -292,27 +289,23 @@
         }
 
         stateEls.debugLayer.classList.remove('hidden');
-        const cols = Math.ceil(metrics.mapWidth / state.grid_cell_size);
-        const rows = Math.ceil(metrics.mapHeight / state.grid_cell_size);
+        const cols = Math.max(1, Number(state.active_map.grid_cols) || 1);
+        const rows = Math.max(1, Number(state.active_map.grid_rows) || 1);
         const limit = 500;
         const visibleIcons = state.icons.filter(icon => Number(icon.is_visible) === 1);
 
         const labels = [];
         for (let y = 0; y < rows; y += 1) {
             for (let x = 0; x < cols; x += 1) {
-                if (labels.length >= limit) {
-                    break;
-                }
-                labels.push(`<span class="debug-cell-label" style="left:${x * state.grid_cell_size}px;top:${y * state.grid_cell_size}px">${x},${y}</span>`);
+                if (labels.length >= limit) break;
+                labels.push(`<span class="debug-cell-label" style="left:${x * metrics.cellWidth}px;top:${y * metrics.cellHeight}px">${x},${y}</span>`);
             }
-            if (labels.length >= limit) {
-                break;
-            }
+            if (labels.length >= limit) break;
         }
 
         visibleIcons.forEach(icon => {
             const entity = state.entities.find(e => Number(e.id) === Number(icon.entity_id));
-            labels.push(`<div class="debug-icon-box" style="left:${Number(icon.grid_x) * state.grid_cell_size}px;top:${Number(icon.grid_y) * state.grid_cell_size}px;width:${Number(icon.size_cells) * state.grid_cell_size}px;height:${Number(icon.size_cells) * state.grid_cell_size}px">
+            labels.push(`<div class="debug-icon-box" style="left:${Number(icon.grid_x) * metrics.cellWidth}px;top:${Number(icon.grid_y) * metrics.cellHeight}px;width:${Number(icon.size_cells) * metrics.cellWidth}px;height:${Number(icon.size_cells) * metrics.cellHeight}px">
                 <span class="debug-icon-meta">#${icon.id} ${DndCommon.escapeHtml(icon.name || 'Без имени')} (${DndCommon.escapeHtml(entity?.side || '-')}) (${icon.grid_x},${icon.grid_y}) size ${icon.size_cells}</span>
             </div>`);
         });
@@ -320,7 +313,9 @@
         stateEls.debugLayer.innerHTML = labels.join('');
         stateEls.sceneDebugInfo.innerHTML = [
             `Сцена: ${metrics.mapWidth}x${metrics.mapHeight}px`,
-            `Grid cell: ${state.grid_cell_size}px`,
+            `Grid: ${cols} × ${rows}`,
+            `Cell: ${metrics.cellWidth.toFixed(2)} × ${metrics.cellHeight.toFixed(2)} px`,
+            `Displayed map: ${metrics.displayedMapWidth.toFixed(2)} × ${metrics.displayedMapHeight.toFixed(2)} px`,
             `Активная карта: ${DndCommon.escapeHtml(state.active_map?.title || '-')}`,
             `Icons state: ${state.icons.length}`,
             `Visible: ${visibleIcons.length}`,
@@ -330,52 +325,43 @@
 
     function changeInputValue(inputId, delta, min = null, max = null) {
         const input = document.getElementById(inputId);
-        if (!input) {
-            return;
-        }
+        if (!input) return;
         const current = Number(input.value || 0);
         let next = current + delta;
-        if (min !== null) {
-            next = Math.max(min, next);
-        }
-        if (max !== null) {
-            next = Math.min(max, next);
-        }
+        if (min !== null) next = Math.max(min, next);
+        if (max !== null) next = Math.min(max, next);
         input.value = String(next);
     }
 
     async function moveSelectedIcon(dx, dy) {
-        if (!selectedIconId || !latestState) {
-            return;
-        }
-
+        if (!selectedIconId || !latestState) return;
         const icon = latestState.icons.find(i => Number(i.id) === Number(selectedIconId));
-        if (!icon) {
-            return;
-        }
+        if (!icon) return;
+
+        const cols = Math.max(1, Number(latestState.active_map?.grid_cols) || 1);
+        const rows = Math.max(1, Number(latestState.active_map?.grid_rows) || 1);
+        const sizeCells = Math.max(1, Number(icon.size_cells) || 1);
 
         await postForm('/api/move_icon.php', {
             id: selectedIconId,
-            grid_x: Math.max(0, Number(icon.grid_x) + dx),
-            grid_y: Math.max(0, Number(icon.grid_y) + dy),
+            grid_x: Math.max(0, Math.min(cols - sizeCells, Number(icon.grid_x) + dx)),
+            grid_y: Math.max(0, Math.min(rows - sizeCells, Number(icon.grid_y) + dy)),
         });
     }
 
     async function resizeSelectedIcon(delta) {
-        if (!selectedIconId || !latestState) {
-            return;
-        }
-
+        if (!selectedIconId || !latestState) return;
         const icon = latestState.icons.find(i => Number(i.id) === Number(selectedIconId));
-        if (!icon) {
-            return;
-        }
+        if (!icon) return;
 
         const nextSize = Math.min(4, Math.max(1, Number(icon.size_cells) + delta));
+        const cols = Math.max(1, Number(latestState.active_map?.grid_cols) || 1);
+        const rows = Math.max(1, Number(latestState.active_map?.grid_rows) || 1);
+
         await postForm('/api/update_icon.php', {
             id: selectedIconId,
-            grid_x: icon.grid_x,
-            grid_y: icon.grid_y,
+            grid_x: Math.max(0, Math.min(cols - nextSize, Number(icon.grid_x))),
+            grid_y: Math.max(0, Math.min(rows - nextSize, Number(icon.grid_y))),
             size_cells: nextSize,
         });
     }
@@ -393,9 +379,7 @@
 
         stateEls.mapList.addEventListener('click', async e => {
             const target = e.target;
-            if (!(target instanceof HTMLElement)) {
-                return;
-            }
+            if (!(target instanceof HTMLElement)) return;
 
             pauseUpdates();
 
@@ -403,7 +387,6 @@
                 toggleActionMenu(target);
                 return;
             }
-
             if (target.classList.contains('activate-map')) {
                 await postForm('/api/update_state.php', { active_map_id: Number(target.dataset.id) });
             }
@@ -415,6 +398,18 @@
                     await postForm('/api/update_map.php', { id, title: title.trim() });
                 }
                 closeAllActionMenus();
+            }
+            if (target.classList.contains('edit-map-grid')) {
+                const id = Number(target.dataset.id);
+                document.getElementById(`map-grid-editor-${id}`)?.classList.toggle('hidden');
+                closeAllActionMenus();
+            }
+            if (target.classList.contains('save-map-grid')) {
+                const id = Number(target.dataset.id);
+                const card = target.closest('.map-list-item');
+                const cols = Number(card?.querySelector('.map-grid-cols')?.value || 0);
+                const rows = Number(card?.querySelector('.map-grid-rows')?.value || 0);
+                await postForm('/api/update_map.php', { id, grid_cols: cols, grid_rows: rows });
             }
             if (target.classList.contains('delete-map')) {
                 const id = Number(target.dataset.id);
@@ -429,7 +424,6 @@
             pauseUpdates(2200);
             e.preventDefault();
             await postForm('/api/update_state.php', {
-                grid_cell_size: stateEls.gridCellSize.value,
                 grid_enabled: stateEls.gridEnabled.checked ? 1 : 0
             });
             gridFormDirty = false;
@@ -437,9 +431,6 @@
         });
 
         stateEls.gridEnabled.addEventListener('change', () => {
-            gridFormDirty = true;
-        });
-        stateEls.gridCellSize.addEventListener('input', () => {
             gridFormDirty = true;
         });
 
@@ -456,9 +447,7 @@
             pauseUpdates(2200);
             e.preventDefault();
             const fd = new FormData(e.currentTarget);
-            if (!editingEntityId) {
-                fd.delete('id');
-            }
+            if (!editingEntityId) fd.delete('id');
             await postForm('/api/save_entity.php', fd, true);
             setEntityEditing(null);
         });
@@ -467,19 +456,13 @@
 
         stateEls.entityList.addEventListener('click', async e => {
             const target = e.target;
-            if (!(target instanceof HTMLElement)) {
-                return;
-            }
-
+            if (!(target instanceof HTMLElement)) return;
             pauseUpdates();
 
             if (target.classList.contains('menu-toggle')) {
                 toggleActionMenu(target);
                 return;
             }
-
-            pauseUpdates();
-
             if (target.classList.contains('del-entity')) {
                 if (confirm('Удалить сущность?')) {
                     await postForm('/api/delete_entity.php', { id: Number(target.dataset.id) });
@@ -489,9 +472,7 @@
             if (target.classList.contains('edit-entity')) {
                 const id = Number(target.dataset.id);
                 const entity = latestState?.entities.find(row => Number(row.id) === id);
-                if (entity) {
-                    setEntityEditing(entity);
-                }
+                if (entity) setEntityEditing(entity);
                 closeAllActionMenus();
             }
         });
@@ -510,9 +491,7 @@
         stateEls.selectedIconForm.addEventListener('submit', async e => {
             pauseUpdates(2200);
             e.preventDefault();
-            if (!selectedIconId) {
-                return;
-            }
+            if (!selectedIconId) return;
             await postForm('/api/update_icon.php', {
                 id: selectedIconId,
                 grid_x: stateEls.selectedIconGridX.value,
@@ -523,32 +502,24 @@
 
         stateEls.selectedIconDelete.addEventListener('click', async () => {
             pauseUpdates(2200);
-            if (!selectedIconId) {
-                return;
-            }
+            if (!selectedIconId) return;
             if (confirm('Удалить иконку?')) {
                 await postForm('/api/delete_icon.php', { id: selectedIconId });
                 setSelectedIcon(null);
             }
         });
+
         stateEls.selectedIconCenter.addEventListener('click', async () => {
             pauseUpdates(2200);
-            if (!selectedIconId) {
-                return;
-            }
+            if (!selectedIconId) return;
             await centerIconById(selectedIconId);
         });
 
         stateEls.sceneIconsList.addEventListener('click', async e => {
             const target = e.target;
-            if (!(target instanceof HTMLElement)) {
-                return;
-            }
-
+            if (!(target instanceof HTMLElement)) return;
             const iconId = Number(target.dataset.id);
-            if (!iconId) {
-                return;
-            }
+            if (!iconId) return;
 
             if (target.classList.contains('scene-select')) {
                 const icon = latestState?.icons.find(i => Number(i.id) === iconId) || null;
@@ -558,20 +529,16 @@
                 }
                 return;
             }
-
             if (target.classList.contains('scene-center')) {
                 pauseUpdates(2200);
                 await centerIconById(iconId);
                 return;
             }
-
             if (target.classList.contains('scene-delete')) {
                 pauseUpdates(2200);
                 if (confirm('Удалить иконку?')) {
                     await postForm('/api/delete_icon.php', { id: iconId });
-                    if (selectedIconId === iconId) {
-                        setSelectedIcon(null);
-                    }
+                    if (selectedIconId === iconId) setSelectedIcon(null);
                 }
             }
         });
@@ -580,12 +547,7 @@
             btn.addEventListener('click', async () => {
                 pauseUpdates(2200);
                 const dir = btn.dataset.dir;
-                const shifts = {
-                    left: [-1, 0],
-                    right: [1, 0],
-                    up: [0, -1],
-                    down: [0, 1],
-                };
+                const shifts = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] };
                 const [dx, dy] = shifts[dir] || [0, 0];
                 await moveSelectedIcon(dx, dy);
             });
@@ -601,9 +563,7 @@
         stateEls.entityForm.querySelectorAll('.quick-adjust').forEach(button => {
             button.addEventListener('click', () => {
                 pauseUpdates(3000);
-                const targetId = button.dataset.target;
-                const delta = Number(button.dataset.delta || 0);
-                changeInputValue(targetId, delta, 0);
+                changeInputValue(button.dataset.target, Number(button.dataset.delta || 0), 0);
             });
         });
 
@@ -620,15 +580,12 @@
             }
         });
 
-
         document.querySelector('.master-controls')?.addEventListener('pointerdown', () => {
             pauseUpdates(2500);
         });
 
         stateEls.sceneDebugToggle?.addEventListener('change', () => {
-            if (latestState) {
-                render(latestState);
-            }
+            if (latestState) render(latestState);
         });
 
         const notes = document.getElementById('notes');
@@ -638,14 +595,9 @@
 
     function initPanelCollapse() {
         document.querySelectorAll('.master-controls .panel').forEach(panel => {
-            if (panel.id === 'selected-icon-panel') {
-                return;
-            }
-
+            if (panel.id === 'selected-icon-panel') return;
             const title = panel.querySelector('h3');
-            if (!title) {
-                return;
-            }
+            if (!title) return;
 
             let content = panel.querySelector(':scope > .panel-content');
             if (!content) {
