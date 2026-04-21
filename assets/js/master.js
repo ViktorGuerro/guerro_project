@@ -90,6 +90,15 @@
     let diceGroups = [];
     let diceRollMode = 'normal';
     let advantageValues = [null, null];
+    const INTERACTION_TIMEOUT_MS = 8000;
+    const battleScenarioDraft = {
+        attackerEntityId: '',
+        targetEntityId: '',
+        actionType: '',
+        isDirty: false,
+        isInteracting: false,
+        lastTouchedAt: 0,
+    };
 
 
     function pauseUpdates(ms = 1800) {
@@ -102,6 +111,61 @@
 
     function closeAllActionMenus() {
         document.querySelectorAll('.item-menu.open').forEach(menu => menu.classList.remove('open'));
+    }
+
+    function markBattleScenarioTouched() {
+        battleScenarioDraft.isDirty = true;
+        battleScenarioDraft.isInteracting = true;
+        battleScenarioDraft.lastTouchedAt = Date.now();
+        battleScenarioDraft.attackerEntityId = stateEls.combatAttacker?.value || stateEls.battleAttackerEntity?.value || '';
+        battleScenarioDraft.targetEntityId = stateEls.combatTarget?.value || stateEls.battleTargetEntity?.value || '';
+        battleScenarioDraft.actionType = stateEls.combatActionType?.value || '';
+    }
+
+    function clearBattleScenarioInteraction() {
+        battleScenarioDraft.isInteracting = false;
+        battleScenarioDraft.lastTouchedAt = Date.now();
+    }
+
+    function isBattleScenarioInteracting() {
+        if (!battleScenarioDraft.isInteracting) {
+            return false;
+        }
+        return Date.now() - battleScenarioDraft.lastTouchedAt < INTERACTION_TIMEOUT_MS;
+    }
+
+    function buildEntitySignature(entities, labelFormatter = entity => entity.name || '') {
+        return (entities || []).map(entity => `${entity.id}|${labelFormatter(entity)}`).join('||');
+    }
+
+    function softUpdateSelectOptions(selectEl, entities, { placeholder = '', labelFormatter = entity => entity.name || '' } = {}) {
+        if (!selectEl) {
+            return false;
+        }
+        const nextSignature = buildEntitySignature(entities, labelFormatter);
+        const prevSignature = selectEl.dataset.optionsSignature || '';
+        if (prevSignature === nextSignature) {
+            return false;
+        }
+
+        const fragment = document.createDocumentFragment();
+        if (placeholder !== null) {
+            const placeholderOption = document.createElement('option');
+            placeholderOption.value = '';
+            placeholderOption.textContent = placeholder;
+            fragment.appendChild(placeholderOption);
+        }
+
+        (entities || []).forEach(entity => {
+            const option = document.createElement('option');
+            option.value = String(entity.id);
+            option.textContent = labelFormatter(entity);
+            fragment.appendChild(option);
+        });
+
+        selectEl.replaceChildren(fragment);
+        selectEl.dataset.optionsSignature = nextSignature;
+        return true;
     }
 
     function toggleActionMenu(button) {
@@ -683,33 +747,58 @@
             stateEls.addIconEntity.value = previousValue;
         }
 
-        const currentAttacker = state.battle_overlay?.attacker?.id ? String(state.battle_overlay.attacker.id) : stateEls.battleAttackerEntity.value;
-        const currentTarget = state.battle_overlay?.target?.id ? String(state.battle_overlay.target.id) : stateEls.battleTargetEntity.value;
+        const hasEntity = value => Boolean(value) && entities.some(e => String(e.id) === String(value));
+        const isInteracting = isBattleScenarioInteracting();
 
-        const battleOptions = ['<option value="">— Выберите —</option>', ...entities.map(e => `<option value="${e.id}">${DndCommon.escapeHtml(e.name)}</option>`)];
-        stateEls.battleAttackerEntity.innerHTML = battleOptions.join('');
-        stateEls.battleTargetEntity.innerHTML = battleOptions.join('');
-        if (stateEls.combatAttacker && stateEls.combatTarget) {
-            stateEls.combatAttacker.innerHTML = battleOptions.join('');
-            stateEls.combatTarget.innerHTML = battleOptions.join('');
+        if (!battleScenarioDraft.isDirty) {
+            battleScenarioDraft.attackerEntityId = stateEls.combatAttacker?.value || stateEls.battleAttackerEntity?.value || '';
+            battleScenarioDraft.targetEntityId = stateEls.combatTarget?.value || stateEls.battleTargetEntity?.value || '';
+            battleScenarioDraft.actionType = stateEls.combatActionType?.value || '';
         }
 
-        if (currentAttacker && entities.some(e => String(e.id) === currentAttacker)) {
-            stateEls.battleAttackerEntity.value = currentAttacker;
-        }
-        if (currentTarget && entities.some(e => String(e.id) === currentTarget)) {
-            stateEls.battleTargetEntity.value = currentTarget;
-        }
+        const previousBattleAttacker = stateEls.battleAttackerEntity?.value || '';
+        const previousBattleTarget = stateEls.battleTargetEntity?.value || '';
+        const previousCombatAttacker = stateEls.combatAttacker?.value || '';
+        const previousCombatTarget = stateEls.combatTarget?.value || '';
 
-        const currentDiceEntity = state.dice_overlay?.entity?.id
-            ? String(state.dice_overlay.entity.id)
-            : stateEls.diceEntity?.value;
-        const diceOptions = ['<option value="">Без сущности</option>', ...entities.map(e => `<option value="${e.id}">${DndCommon.escapeHtml(e.name)} (${DndCommon.escapeHtml(formatSideLabel(e.side))})</option>`)];
-        if (stateEls.diceEntity) {
-            stateEls.diceEntity.innerHTML = diceOptions.join('');
-            if (currentDiceEntity && entities.some(e => String(e.id) === currentDiceEntity)) {
-                stateEls.diceEntity.value = currentDiceEntity;
+        const battleSelectsChanged = [
+            softUpdateSelectOptions(stateEls.battleAttackerEntity, entities, { placeholder: '— Выберите —' }),
+            softUpdateSelectOptions(stateEls.battleTargetEntity, entities, { placeholder: '— Выберите —' }),
+            softUpdateSelectOptions(stateEls.combatAttacker, entities, { placeholder: '— Выберите —' }),
+            softUpdateSelectOptions(stateEls.combatTarget, entities, { placeholder: '— Выберите —' }),
+        ].some(Boolean);
+
+        if (battleSelectsChanged || !isInteracting) {
+            const desiredAttacker = battleScenarioDraft.attackerEntityId || previousCombatAttacker || previousBattleAttacker || '';
+            const desiredTarget = battleScenarioDraft.targetEntityId || previousCombatTarget || previousBattleTarget || '';
+
+            const attackerValue = hasEntity(desiredAttacker) ? String(desiredAttacker) : '';
+            const targetValue = hasEntity(desiredTarget) ? String(desiredTarget) : '';
+
+            if (stateEls.combatAttacker) {
+                stateEls.combatAttacker.value = attackerValue;
             }
+            if (stateEls.battleAttackerEntity) {
+                stateEls.battleAttackerEntity.value = attackerValue;
+            }
+            if (stateEls.combatTarget) {
+                stateEls.combatTarget.value = targetValue;
+            }
+            if (stateEls.battleTargetEntity) {
+                stateEls.battleTargetEntity.value = targetValue;
+            }
+
+            battleScenarioDraft.attackerEntityId = attackerValue;
+            battleScenarioDraft.targetEntityId = targetValue;
+        }
+
+        const previousDiceEntity = stateEls.diceEntity?.value || '';
+        const diceSelectChanged = softUpdateSelectOptions(stateEls.diceEntity, entities, {
+            placeholder: 'Без сущности',
+            labelFormatter: entity => `${entity.name} (${formatSideLabel(entity.side)})`,
+        });
+        if (stateEls.diceEntity && diceSelectChanged) {
+            stateEls.diceEntity.value = hasEntity(previousDiceEntity) ? previousDiceEntity : '';
         }
     }
 
@@ -1058,7 +1147,31 @@
         });
 
 
+        const onBattleScenarioBlur = () => {
+            setTimeout(() => {
+                const active = document.activeElement;
+                const stillInside = active === stateEls.combatAttacker
+                    || active === stateEls.combatTarget
+                    || active === stateEls.combatActionType
+                    || active === stateEls.battleAttackerEntity
+                    || active === stateEls.battleTargetEntity;
+                if (!stillInside) {
+                    clearBattleScenarioInteraction();
+                }
+            }, 0);
+        };
+
+        [stateEls.combatAttacker, stateEls.combatTarget, stateEls.combatActionType, stateEls.battleAttackerEntity, stateEls.battleTargetEntity].forEach(field => {
+            if (!field) {
+                return;
+            }
+            field.addEventListener('focus', markBattleScenarioTouched);
+            field.addEventListener('change', markBattleScenarioTouched);
+            field.addEventListener('blur', onBattleScenarioBlur);
+        });
+
         stateEls.combatShowBattle?.addEventListener('click', async () => {
+            clearBattleScenarioInteraction();
             const attackerId = Number(stateEls.combatAttacker?.value || 0);
             const targetId = Number(stateEls.combatTarget?.value || 0);
             if (!attackerId || !targetId) {
@@ -1066,8 +1179,11 @@
                 return;
             }
             await postForm('/api/show_battle_overlay.php', { attacker_entity_id: attackerId, target_entity_id: targetId });
+            battleScenarioDraft.attackerEntityId = String(attackerId);
+            battleScenarioDraft.targetEntityId = String(targetId);
         });
         stateEls.combatShowDice?.addEventListener('click', async () => {
+            clearBattleScenarioInteraction();
             stateEls.battleAttackerEntity.value = stateEls.combatAttacker?.value || '';
             stateEls.battleTargetEntity.value = stateEls.combatTarget?.value || '';
             stateEls.diceEntity.value = stateEls.combatAttacker?.value || '';
@@ -1075,15 +1191,18 @@
             await stateEls.diceOverlayForm?.requestSubmit();
         });
         stateEls.combatShowResult?.addEventListener('click', async () => {
+            clearBattleScenarioInteraction();
             await postForm('/api/show_auto_roll_result.php', {
                 action_type: stateEls.combatActionType?.value || 'custom',
                 target_entity_id: Number(stateEls.combatTarget?.value || 0) || null,
             });
         });
         stateEls.combatShowDamage?.addEventListener('click', async () => {
+            clearBattleScenarioInteraction();
             await postForm('/api/show_roll_result_overlay.php', { result_type: 'damage', title: 'Урон', subtitle: stateEls.diceLabel?.value || '', value_text: `${stateEls.diceTotal?.value || '-'} урона` });
         });
         stateEls.combatHideAll?.addEventListener('click', async () => {
+            clearBattleScenarioInteraction();
             await Promise.all([
                 postForm('/api/hide_battle_overlay.php', {}),
                 postForm('/api/hide_dice_overlay.php', {}),
@@ -1095,6 +1214,7 @@
         stateEls.battleOverlayForm?.addEventListener('submit', async e => {
             pauseUpdates(2200);
             e.preventDefault();
+            clearBattleScenarioInteraction();
 
             const attackerId = Number(stateEls.battleAttackerEntity.value);
             const targetId = Number(stateEls.battleTargetEntity.value);
@@ -1108,6 +1228,8 @@
                 attacker_entity_id: attackerId,
                 target_entity_id: targetId,
             });
+            battleScenarioDraft.attackerEntityId = String(attackerId);
+            battleScenarioDraft.targetEntityId = String(targetId);
         });
 
         stateEls.battleHideButton?.addEventListener('click', async () => {
