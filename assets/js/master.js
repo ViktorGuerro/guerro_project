@@ -5,6 +5,9 @@
         sceneLayer: document.getElementById('master-scene-layer'),
         gridLayer: document.getElementById('master-grid-layer'),
         iconsLayer: document.getElementById('master-icons-layer'),
+        abilityLayer: document.getElementById('master-ability-overlay-layer'),
+        movementLayer: document.getElementById('master-movement-overlay-layer'),
+        hoverLayer: document.getElementById('master-hover-overlay-layer'),
         gridEnabled: document.getElementById('grid-enabled'),
         gridCellSize: document.getElementById('grid-cell-size'),
         mapList: document.getElementById('map-list'),
@@ -36,6 +39,8 @@
         selectedIconShowRange: document.getElementById('selected-icon-show-range'),
         selectedIconHideRange: document.getElementById('selected-icon-hide-range'),
         sceneIconsList: document.getElementById('scene-icons-list'),
+        movementModeToggle: document.getElementById('movement-mode-toggle'),
+        movementDebugToggle: document.getElementById('movement-debug-toggle'),
         sceneDebugToggle: document.getElementById('scene-debug-toggle'),
         sceneDebugInfo: document.getElementById('scene-debug-info'),
         debugLayer: document.getElementById('master-debug-layer'),
@@ -44,6 +49,8 @@
     let latestState = null;
     let editingEntityId = null;
     let selectedIconId = null;
+    let movementModeEnabled = false;
+    let hoverCell = null;
     let gridFormDirty = false;
     let pauseUpdatesUntil = 0;
 
@@ -121,6 +128,7 @@
 
     function setSelectedIcon(icon = null) {
         selectedIconId = icon ? Number(icon.id) : null;
+        hoverCell = null;
         if (!icon) {
             stateEls.selectedIconPanel.classList.add('hidden');
             return;
@@ -136,6 +144,134 @@
         stateEls.selectedIconGridX.value = icon.grid_x;
         stateEls.selectedIconGridY.value = icon.grid_y;
         stateEls.selectedIconSizeCells.value = icon.size_cells;
+    }
+
+    function getSelectedIcon(state) {
+        if (!selectedIconId || !state) {
+            return null;
+        }
+        return state.icons.find(i => Number(i.id) === Number(selectedIconId)) || null;
+    }
+
+    function getMovementDistance(icon, cellX, cellY) {
+        if (!icon) {
+            return Number.POSITIVE_INFINITY;
+        }
+        return Math.abs(Number(cellX) - Number(icon.grid_x)) + Math.abs(Number(cellY) - Number(icon.grid_y));
+    }
+
+    function getMovementBand(distance) {
+        if (distance <= 6) {
+            return 'walk';
+        }
+        if (distance <= 12) {
+            return 'dash';
+        }
+        return 'invalid';
+    }
+
+    function toSceneCell(event, state) {
+        const rect = stateEls.sceneLayer.getBoundingClientRect();
+        if (!rect.width || !rect.height) {
+            return null;
+        }
+        const scaleX = rect.width / Math.max(1, stateEls.sceneLayer.offsetWidth);
+        const scaleY = rect.height / Math.max(1, stateEls.sceneLayer.offsetHeight);
+        const x = Math.floor((event.clientX - rect.left) / (state.grid_cell_size * scaleX));
+        const y = Math.floor((event.clientY - rect.top) / (state.grid_cell_size * scaleY));
+        if (x < 0 || y < 0) {
+            return null;
+        }
+        const maxX = Math.floor((stateEls.sceneLayer.offsetWidth - 1) / state.grid_cell_size);
+        const maxY = Math.floor((stateEls.sceneLayer.offsetHeight - 1) / state.grid_cell_size);
+        if (x > maxX || y > maxY) {
+            return null;
+        }
+        return { x, y };
+    }
+
+    function renderAbilityCells(state) {
+        stateEls.abilityLayer.innerHTML = '';
+        const overlay = state.ability_overlay;
+        if (!overlay?.active || !overlay.icon_id || !overlay.range_cells) {
+            return;
+        }
+        const icon = (state.icons || []).find(row => Number(row.id) === Number(overlay.icon_id));
+        if (!icon) {
+            return;
+        }
+        const centerX = Number(icon.grid_x);
+        const centerY = Number(icon.grid_y);
+        const radius = Math.max(1, Number(overlay.range_cells) || 1);
+        const cellSize = Number(state.grid_cell_size) || 70;
+        for (let y = centerY - radius; y <= centerY + radius; y += 1) {
+            for (let x = centerX - radius; x <= centerX + radius; x += 1) {
+                const distance = Math.abs(x - centerX) + Math.abs(y - centerY);
+                if (distance > radius || x < 0 || y < 0) {
+                    continue;
+                }
+                const cell = document.createElement('div');
+                cell.className = 'ability-cell';
+                cell.style.left = `${x * cellSize}px`;
+                cell.style.top = `${y * cellSize}px`;
+                cell.style.width = `${cellSize}px`;
+                cell.style.height = `${cellSize}px`;
+                stateEls.abilityLayer.appendChild(cell);
+            }
+        }
+    }
+
+    function renderMovementOverlay(state, icon) {
+        stateEls.movementLayer.innerHTML = '';
+        if (!movementModeEnabled || !icon) {
+            return;
+        }
+        const cols = Math.ceil(stateEls.sceneLayer.offsetWidth / state.grid_cell_size);
+        const rows = Math.ceil(stateEls.sceneLayer.offsetHeight / state.grid_cell_size);
+        const showDebug = Boolean(stateEls.movementDebugToggle?.checked);
+        for (let y = 0; y < rows; y += 1) {
+            for (let x = 0; x < cols; x += 1) {
+                const distance = getMovementDistance(icon, x, y);
+                const band = getMovementBand(distance);
+                if (band === 'invalid') {
+                    continue;
+                }
+                const cell = document.createElement('div');
+                cell.className = `movement-cell ${band}`;
+                cell.style.left = `${x * state.grid_cell_size}px`;
+                cell.style.top = `${y * state.grid_cell_size}px`;
+                cell.style.width = `${state.grid_cell_size}px`;
+                cell.style.height = `${state.grid_cell_size}px`;
+                if (showDebug) {
+                    const label = document.createElement('span');
+                    label.className = 'movement-debug-label';
+                    label.textContent = `${x},${y} • ${distance}`;
+                    cell.appendChild(label);
+                }
+                stateEls.movementLayer.appendChild(cell);
+            }
+        }
+    }
+
+    function renderHoverPreview(state, icon) {
+        stateEls.hoverLayer.innerHTML = '';
+        if (!movementModeEnabled || !icon || !hoverCell) {
+            return;
+        }
+        const distance = getMovementDistance(icon, hoverCell.x, hoverCell.y);
+        const band = getMovementBand(distance);
+        const cell = document.createElement('div');
+        const isValid = band !== 'invalid';
+        cell.className = `hover-cell ${isValid ? `valid ${band}` : 'invalid'}`;
+        cell.style.left = `${hoverCell.x * state.grid_cell_size}px`;
+        cell.style.top = `${hoverCell.y * state.grid_cell_size}px`;
+        cell.style.width = `${state.grid_cell_size}px`;
+        cell.style.height = `${state.grid_cell_size}px`;
+        const label = document.createElement('span');
+        label.className = 'hover-cell-label';
+        label.textContent = isValid ? `${band === 'walk' ? 'Ход' : 'Рывок'} • ${distance}` : `Недоступно • ${distance}`;
+        cell.appendChild(label);
+        stateEls.hoverLayer.appendChild(cell);
     }
 
     function getSceneCenterCell(state, metrics, icon = null) {
@@ -273,6 +409,7 @@
             setSelectedIcon(selected);
         }
 
+        const selectedIcon = getSelectedIcon(state);
         const isDebug = Boolean(stateEls.sceneDebugToggle?.checked);
         const metrics = DndCommon.renderScene({
             stage: stateEls.mapStage,
@@ -297,8 +434,15 @@
                     const rect = stateEls.sceneLayer.getBoundingClientRect();
                     const scaleX = rect.width / Math.max(1, stateEls.sceneLayer.offsetWidth);
                     const scaleY = rect.height / Math.max(1, stateEls.sceneLayer.offsetHeight);
-                    const x = Math.max(0, Math.round((e.clientX - rect.left) / (state.grid_cell_size * scaleX)));
-                    const y = Math.max(0, Math.round((e.clientY - rect.top) / (state.grid_cell_size * scaleY)));
+                    const x = Math.max(0, Math.floor((e.clientX - rect.left) / (state.grid_cell_size * scaleX)));
+                    const y = Math.max(0, Math.floor((e.clientY - rect.top) / (state.grid_cell_size * scaleY)));
+                    if (movementModeEnabled) {
+                        const draggedIcon = state.icons.find(i => Number(i.id) === id);
+                        const distance = getMovementDistance(draggedIcon, x, y);
+                        if (getMovementBand(distance) === 'invalid') {
+                            return;
+                        }
+                    }
                     await postForm('/api/move_icon.php', { id, grid_x: x, grid_y: y });
                     selectedIconId = id;
                     render(await DndCommon.fetchState());
@@ -307,6 +451,9 @@
             onImageLoad: async () => render(await DndCommon.fetchState()),
         });
 
+        renderAbilityCells(state);
+        renderMovementOverlay(state, selectedIcon);
+        renderHoverPreview(state, selectedIcon);
         renderSceneIconsList(state, metrics);
         renderSceneDebug(state, metrics);
     }
@@ -411,6 +558,15 @@
     }
 
     function bindForms() {
+        const syncMovementModeButton = () => {
+            if (!stateEls.movementModeToggle) {
+                return;
+            }
+            stateEls.movementModeToggle.textContent = `Режим перемещения: ${movementModeEnabled ? 'вкл' : 'выкл'}`;
+            stateEls.movementModeToggle.classList.toggle('secondary', !movementModeEnabled);
+        };
+        syncMovementModeButton();
+
         document.getElementById('btn-mode-prep').onclick = () => postForm('/api/toggle_mode.php', { mode: 'prep' });
         document.getElementById('btn-mode-map').onclick = () => postForm('/api/toggle_mode.php', { mode: 'map' });
 
@@ -701,6 +857,47 @@
             if (latestState) {
                 render(latestState);
             }
+        });
+
+        stateEls.movementModeToggle?.addEventListener('click', () => {
+            movementModeEnabled = !movementModeEnabled;
+            hoverCell = null;
+            syncMovementModeButton();
+            if (latestState) {
+                render(latestState);
+            }
+        });
+
+        stateEls.movementDebugToggle?.addEventListener('change', () => {
+            if (latestState) {
+                render(latestState);
+            }
+        });
+
+        stateEls.sceneLayer.addEventListener('mousemove', e => {
+            if (!latestState || !movementModeEnabled) {
+                return;
+            }
+            hoverCell = toSceneCell(e, latestState);
+            renderHoverPreview(latestState, getSelectedIcon(latestState));
+        });
+        stateEls.sceneLayer.addEventListener('mouseleave', () => {
+            hoverCell = null;
+            stateEls.hoverLayer.innerHTML = '';
+        });
+        stateEls.sceneLayer.addEventListener('dragover', e => {
+            if (!latestState || !movementModeEnabled) {
+                return;
+            }
+            hoverCell = toSceneCell(e, latestState);
+            renderHoverPreview(latestState, getSelectedIcon(latestState));
+        });
+        stateEls.sceneLayer.addEventListener('dragleave', () => {
+            if (!movementModeEnabled) {
+                return;
+            }
+            hoverCell = null;
+            stateEls.hoverLayer.innerHTML = '';
         });
 
         const notes = document.getElementById('notes');

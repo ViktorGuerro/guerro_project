@@ -155,6 +155,12 @@
         <div id="selected-icon-panel" class="panel hidden">
             <h3>Выбранная иконка</h3>
             <div id="selected-icon-meta" class="selected-icon-meta">Не выбрана</div>
+            <div class="form-row">
+                <button id="movement-mode-toggle" type="button" class="secondary">Режим перемещения: выкл</button>
+            </div>
+            <div class="form-row">
+                <label><input id="movement-debug-toggle" type="checkbox"> Подписи клеток (debug)</label>
+            </div>
             <div class="icon-quick-controls">
                 <div class="icon-quick-title">Перемещение</div>
                 <div class="move-pad">
@@ -232,6 +238,9 @@
         <div class="scene-layer" id="master-scene-layer">
             <img id="master-map-image" class="map-image" src="" alt="map">
             <div id="master-grid-layer" class="grid-layer"></div>
+            <div id="master-ability-overlay-layer" class="ability-overlay-layer"></div>
+            <div id="master-movement-overlay-layer" class="movement-overlay-layer"></div>
+            <div id="master-hover-overlay-layer" class="hover-overlay-layer"></div>
             <div id="master-icons-layer" class="icons-layer"></div>
             <div id="master-debug-layer" class="debug-layer hidden"></div>
         </div>
