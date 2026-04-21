@@ -5,7 +5,5 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 );
 
 INSERT INTO schema_migrations (migration_name)
-SELECT '000_create_schema_migrations.sql'
-WHERE NOT EXISTS (
-    SELECT 1 FROM schema_migrations WHERE migration_name = '000_create_schema_migrations.sql'
-);
+VALUES ('000_create_schema_migrations.sql')
+ON DUPLICATE KEY UPDATE migration_name = migration_name;
