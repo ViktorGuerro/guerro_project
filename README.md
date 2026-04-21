@@ -50,6 +50,7 @@ ORDER BY id;
 mysql -u guerro_user -p guerro_db < sql/migrations/000_create_schema_migrations.sql
 mysql -u guerro_user -p guerro_db < sql/migrations/001_split_battle_overlay_to_attacker_and_target.sql
 mysql -u guerro_user -p guerro_db < sql/migrations/002_add_dice_overlay_state.sql
+mysql -u guerro_user -p guerro_db < sql/migrations/006_add_roll_result_overlay_state.sql
 # ... и далее по порядку
 ```
 
@@ -104,3 +105,5 @@ chown -R www-data:www-data uploads
 - `POST /api/add_icon.php`
 - `POST /api/move_icon.php`
 - `POST /api/delete_icon.php`
+- `POST /api/show_roll_result_overlay.php`
+- `POST /api/hide_roll_result_overlay.php`

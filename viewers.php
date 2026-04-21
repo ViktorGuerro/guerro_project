@@ -70,6 +70,12 @@
         <div id="dice-overlay-summary" class="dice-overlay-summary"></div>
     </div>
 
+    <div id="roll-result-overlay" class="roll-result-overlay hidden">
+        <div id="roll-result-title" class="roll-result-title"></div>
+        <div id="roll-result-subtitle" class="roll-result-subtitle"></div>
+        <div id="roll-result-value" class="roll-result-value"></div>
+    </div>
+
     <div id="viewers-stage" class="screen-map-stage map-stage hidden">
         <div class="scene-layer" id="viewers-scene-layer">
             <img id="viewers-map-image" class="map-image" src="" alt="map">

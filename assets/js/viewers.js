@@ -24,6 +24,10 @@
     const diceOverlayLabel = document.getElementById('dice-overlay-label');
     const diceOverlayDiceList = document.getElementById('dice-overlay-dice-list');
     const diceOverlaySummary = document.getElementById('dice-overlay-summary');
+    const rollResultOverlay = document.getElementById('roll-result-overlay');
+    const rollResultTitle = document.getElementById('roll-result-title');
+    const rollResultSubtitle = document.getElementById('roll-result-subtitle');
+    const rollResultValue = document.getElementById('roll-result-value');
 
     let lastDiceSignature = null;
 
@@ -232,6 +236,22 @@
         diceOverlay.classList.remove('hidden');
     }
 
+    function renderRollResultOverlay(state) {
+        const overlay = state.roll_result_overlay;
+        if (!overlay?.active) {
+            rollResultOverlay.classList.add('hidden');
+            rollResultOverlay.className = 'roll-result-overlay hidden';
+            return;
+        }
+
+        rollResultTitle.textContent = overlay.title || '';
+        rollResultSubtitle.textContent = overlay.subtitle || '';
+        rollResultValue.textContent = overlay.value_text || '';
+        rollResultSubtitle.classList.toggle('hidden', !overlay.subtitle);
+        rollResultValue.classList.toggle('hidden', !overlay.value_text);
+        rollResultOverlay.className = `roll-result-overlay result-${overlay.result_type || 'custom'}`;
+    }
+
 
     function render(state) {
         if (state.mode === 'prep' || !state.active_map) {
@@ -264,6 +284,7 @@
 
         renderBattleOverlay(state);
         renderDiceOverlay(state);
+        renderRollResultOverlay(state);
     }
 
     DndCommon.startPolling(render, 700);

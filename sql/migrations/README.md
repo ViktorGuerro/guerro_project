@@ -7,6 +7,7 @@
 - `000_create_schema_migrations.sql`
 - `001_split_battle_overlay_to_attacker_and_target.sql`
 - `002_add_dice_overlay_state.sql`
+- `006_add_roll_result_overlay_state.sql`
 
 Правила:
 

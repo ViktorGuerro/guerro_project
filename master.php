@@ -160,6 +160,49 @@
         </div>
 
         <div class="panel">
+            <h3>Результат броска</h3>
+            <form id="roll-result-overlay-form">
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="roll-result-type" class="field-label">Тип результата</label>
+                        <select id="roll-result-type" required>
+                            <option value="hit">Попадание</option>
+                            <option value="miss">Промах</option>
+                            <option value="crit_success">Критический успех</option>
+                            <option value="crit_fail">Критический провал</option>
+                            <option value="save_success">Спасбросок пройден</option>
+                            <option value="save_fail">Спасбросок провален</option>
+                            <option value="damage">Урон</option>
+                            <option value="custom">Пользовательский</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="roll-result-title" class="field-label">Заголовок</label>
+                        <input id="roll-result-title" type="text" placeholder="Попадание" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="roll-result-subtitle" class="field-label">Подзаголовок</label>
+                        <input id="roll-result-subtitle" type="text" placeholder="Атака паладина">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="roll-result-value-text" class="field-label">Значение</label>
+                        <input id="roll-result-value-text" type="text" placeholder="22 урона">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <button type="submit">Показать результат</button>
+                    <button id="btn-hide-roll-result-overlay" type="button" class="secondary">Скрыть результат</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="panel">
             <h3>Герои и враги</h3>
             <form id="entity-form" enctype="multipart/form-data">
                 <input type="hidden" id="entity-id" name="id" value="">

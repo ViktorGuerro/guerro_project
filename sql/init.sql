@@ -121,6 +121,19 @@ CREATE TABLE ability_overlay_state (
 INSERT INTO ability_overlay_state (id, icon_id, range_cells, visible_until)
 VALUES (1, NULL, NULL, NULL);
 
+CREATE TABLE roll_result_overlay_state (
+    id INT PRIMARY KEY,
+    result_type VARCHAR(50) DEFAULT NULL,
+    title VARCHAR(255) DEFAULT NULL,
+    subtitle VARCHAR(255) DEFAULT NULL,
+    value_text VARCHAR(255) DEFAULT NULL,
+    visible_until DATETIME DEFAULT NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+INSERT INTO roll_result_overlay_state (id, result_type, title, subtitle, value_text, visible_until)
+VALUES (1, NULL, NULL, NULL, NULL, NULL);
+
 
 INSERT IGNORE INTO schema_migrations (migration_name) VALUES
     ('000_create_schema_migrations.sql'),
@@ -128,4 +141,5 @@ INSERT IGNORE INTO schema_migrations (migration_name) VALUES
     ('002_add_dice_overlay_state.sql'),
     ('003_expand_entities_side_enum_for_boss_and_npc.sql'),
     ('004_extend_dice_overlay_to_groups.sql'),
-    ('005_extend_dice_overlay_roll_modes.sql');
+    ('005_extend_dice_overlay_roll_modes.sql'),
+    ('006_add_roll_result_overlay_state.sql');

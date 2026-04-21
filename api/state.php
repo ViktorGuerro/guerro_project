@@ -203,6 +203,23 @@ $abilityRangeStmt = $pdo->query(
 $abilityRange = $abilityRangeStmt->fetch() ?: ['icon_id' => null, 'range_cells' => null, 'visible_until' => null, 'grid_x' => null, 'grid_y' => null, 'size_cells' => null];
 $abilityRangeVisible = $abilityRange['visible_until'] !== null && strtotime((string) $abilityRange['visible_until']) > time() && $abilityRange['icon_id'] !== null && $abilityRange['range_cells'] !== null;
 
+$rollResultOverlayStmt = $pdo->query(
+    'SELECT result_type, title, subtitle, value_text, visible_until
+     FROM roll_result_overlay_state
+     WHERE id = 1'
+);
+$rollResultOverlay = $rollResultOverlayStmt->fetch() ?: [
+    'result_type' => null,
+    'title' => null,
+    'subtitle' => null,
+    'value_text' => null,
+    'visible_until' => null,
+];
+$rollResultOverlayVisible = $rollResultOverlay['visible_until'] !== null
+    && strtotime((string) $rollResultOverlay['visible_until']) > time()
+    && $rollResultOverlay['result_type'] !== null
+    && $rollResultOverlay['title'] !== null;
+
 $entities = $pdo->query('SELECT id, name, side, image_path, armor_class, hp_current, hp_max, sort_order, is_visible FROM entities ORDER BY sort_order, id')->fetchAll();
 
 $icons = $pdo->query(
@@ -288,6 +305,13 @@ api_ok([
         'grid_x' => $abilityRangeVisible ? (int) $abilityRange['grid_x'] : null,
         'grid_y' => $abilityRangeVisible ? (int) $abilityRange['grid_y'] : null,
         'size_cells' => $abilityRangeVisible ? (int) $abilityRange['size_cells'] : null,
+    ],
+    'roll_result_overlay' => [
+        'active' => $rollResultOverlayVisible,
+        'result_type' => $rollResultOverlayVisible ? $rollResultOverlay['result_type'] : null,
+        'title' => $rollResultOverlayVisible ? $rollResultOverlay['title'] : null,
+        'subtitle' => $rollResultOverlayVisible ? $rollResultOverlay['subtitle'] : null,
+        'value_text' => $rollResultOverlayVisible ? $rollResultOverlay['value_text'] : null,
     ],
     'poll_interval_ms' => (int) $config['app']['poll_interval_ms'],
 ]);

@@ -61,6 +61,12 @@
         diceTotal: document.getElementById('dice-total'),
         diceCriticalPreview: document.getElementById('dice-critical-preview'),
         diceHideButton: document.getElementById('btn-hide-dice-overlay'),
+        rollResultOverlayForm: document.getElementById('roll-result-overlay-form'),
+        rollResultType: document.getElementById('roll-result-type'),
+        rollResultTitle: document.getElementById('roll-result-title'),
+        rollResultSubtitle: document.getElementById('roll-result-subtitle'),
+        rollResultValueText: document.getElementById('roll-result-value-text'),
+        rollResultHideButton: document.getElementById('btn-hide-roll-result-overlay'),
     };
 
     let latestState = null;
@@ -1104,6 +1110,24 @@
         stateEls.diceHideButton?.addEventListener('click', async () => {
             pauseUpdates(2200);
             await postForm('/api/hide_dice_overlay.php', {});
+        });
+
+        stateEls.rollResultOverlayForm?.addEventListener('submit', async e => {
+            pauseUpdates(2200);
+            e.preventDefault();
+
+            const payload = {
+                result_type: (stateEls.rollResultType?.value || '').trim(),
+                title: (stateEls.rollResultTitle?.value || '').trim(),
+                subtitle: (stateEls.rollResultSubtitle?.value || '').trim(),
+                value_text: (stateEls.rollResultValueText?.value || '').trim(),
+            };
+            await postForm('/api/show_roll_result_overlay.php', payload);
+        });
+
+        stateEls.rollResultHideButton?.addEventListener('click', async () => {
+            pauseUpdates(2200);
+            await postForm('/api/hide_roll_result_overlay.php', {});
         });
 
         document.getElementById('add-icon-form').addEventListener('submit', async e => {
