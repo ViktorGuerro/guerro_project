@@ -6,9 +6,9 @@ return [
     'db' => [
         'host' => 'localhost',
         'port' => '3306',
-        'dbname' => 'guerro_db',
-        'user' => 'guerro_user',
-        'pass' => 'CHANGE_ME',
+        'dbname' => 'u3491704_default',
+        'user' => 'u3491704_default',
+        'pass' => 'TV480rVpSbFrZ5wR',
         'charset' => 'utf8mb4',
     ],
     'app' => [
