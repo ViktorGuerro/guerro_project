@@ -27,25 +27,3 @@
     border-radius: 14px;
     background: rgba(17,17,17,0.8);
 }
-.viewer-sidebar {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 280px;
-    overflow-y: auto;
-    background: rgba(0,0,0,0.55);
-    padding: 12px;
-    z-index: 20;
-}
-.entity-card {
-    display: grid;
-    grid-template-columns: 56px 1fr;
-    gap: 8px;
-    background: rgba(38,38,38,0.9);
-    border: 1px solid #4a4a4a;
-    border-radius: 8px;
-    padding: 8px;
-    margin-bottom: 8px;
-}
-.entity-card img { width: 56px; height: 56px; object-fit: cover; border-radius: 50%; }

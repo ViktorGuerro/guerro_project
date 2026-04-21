@@ -34,6 +34,7 @@
     let latestState = null;
     let editingEntityId = null;
     let selectedIconId = null;
+    let gridFormDirty = false;
 
     async function postForm(url, entries, isMultipart = false) {
         const form = isMultipart ? entries : new FormData();
@@ -125,8 +126,10 @@
             stateEls.mapImage.removeAttribute('src');
         }
 
-        stateEls.gridEnabled.checked = Boolean(state.grid_enabled);
-        stateEls.gridCellSize.value = state.grid_cell_size;
+        if (!gridFormDirty) {
+            stateEls.gridEnabled.checked = Boolean(state.grid_enabled);
+            stateEls.gridCellSize.value = state.grid_cell_size;
+        }
         DndCommon.renderGrid(stateEls.gridLayer, state.grid_cell_size, Boolean(state.grid_enabled));
 
         const selected = state.icons.find(i => Number(i.id) === Number(selectedIconId)) || null;
@@ -191,6 +194,15 @@
                 grid_cell_size: stateEls.gridCellSize.value,
                 grid_enabled: stateEls.gridEnabled.checked ? 1 : 0
             });
+            gridFormDirty = false;
+            render(await DndCommon.fetchState());
+        });
+
+        stateEls.gridEnabled.addEventListener('change', () => {
+            gridFormDirty = true;
+        });
+        stateEls.gridCellSize.addEventListener('input', () => {
+            gridFormDirty = true;
         });
 
         document.getElementById('dc-show-form').addEventListener('submit', async e => {

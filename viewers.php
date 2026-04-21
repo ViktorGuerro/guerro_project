@@ -11,7 +11,6 @@
 <body>
 <div class="screen-wrap">
     <div class="top-controls"><button id="btn-refresh" class="secondary">Обновить</button><button id="btn-fullscreen">Fullscreen</button></div>
-    <aside id="viewer-sidebar" class="viewer-sidebar"></aside>
     <div id="dc-box" class="dc-box hidden"></div>
     <div id="viewers-placeholder" class="placeholder">Подготовка сцены</div>
     <div id="viewers-stage" class="screen-map-stage map-stage hidden">
