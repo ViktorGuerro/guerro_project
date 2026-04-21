@@ -191,3 +191,84 @@
     height: 42px;
     object-fit: contain;
 }
+
+.dice-overlay {
+    position: absolute;
+    left: 50%;
+    bottom: 40px;
+    transform: translateX(-50%);
+    z-index: 23;
+    min-width: 520px;
+    max-width: min(90vw, 1000px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(16, 16, 20, 0.82);
+    backdrop-filter: blur(4px);
+    padding: 14px 16px;
+    transition: opacity .2s ease;
+}
+.dice-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+.dice-overlay-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 10px;
+}
+.dice-overlay-actor {
+    font-size: 28px;
+    font-weight: 800;
+}
+.dice-overlay-label {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffe5a9;
+}
+.dice-overlay-dice-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.dice-tile {
+    width: 92px;
+    height: 92px;
+    border-radius: 12px;
+    border: 1px solid rgba(180, 220, 255, 0.55);
+    background: linear-gradient(140deg, rgba(47, 76, 118, 0.9), rgba(27, 34, 58, 0.9));
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 8px 14px rgba(0, 0, 0, 0.35);
+}
+.dice-type {
+    font-size: 16px;
+    color: #aad6ff;
+    font-weight: 700;
+}
+.dice-value {
+    font-size: 42px;
+    font-weight: 900;
+    line-height: 1;
+}
+.dice-overlay-summary {
+    margin-top: 10px;
+    font-size: 28px;
+    font-weight: 800;
+    text-align: right;
+}
+.dice-tile.rolling {
+    animation: dice-roll 850ms ease both;
+}
+.dice-tile.settled {
+    transform: scale(1);
+}
+
+@keyframes dice-roll {
+    0% { opacity: 0; transform: scale(.5) rotate(-15deg); }
+    40% { opacity: 1; transform: scale(1.15) rotate(8deg); }
+    80% { transform: scale(.95) rotate(-6deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}

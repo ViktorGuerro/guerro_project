@@ -19,6 +19,8 @@
 mysql -u guerro_user -p guerro_db < sql/init.sql
 ```
 
+Для существующих установок применяйте SQL-миграции из `sql/migrations/` по порядку (например, через mysql-клиент).
+
 ## Настройка подключения к БД
 
 Откройте `inc/config.php` и заполните блок `db`:
@@ -68,3 +70,5 @@ chown -R www-data:www-data uploads
 - `POST /api/add_icon.php`
 - `POST /api/move_icon.php`
 - `POST /api/delete_icon.php`
+- `POST /api/show_dice_overlay.php`
+- `POST /api/hide_dice_overlay.php`

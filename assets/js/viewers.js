@@ -13,6 +13,12 @@
     const battleOverlayName = document.getElementById('battle-overlay-name');
     const battleOverlayAc = document.getElementById('battle-overlay-ac');
     const battleOverlayHp = document.getElementById('battle-overlay-hp');
+    const diceOverlay = document.getElementById('dice-overlay');
+    const diceOverlayActor = document.getElementById('dice-overlay-actor');
+    const diceOverlayLabel = document.getElementById('dice-overlay-label');
+    const diceOverlayDiceList = document.getElementById('dice-overlay-dice-list');
+    const diceOverlaySummary = document.getElementById('dice-overlay-summary');
+    let lastDiceOverlayKey = '';
 
     function renderAbilityCircle(state) {
         abilityLayer.innerHTML = '';
@@ -59,6 +65,45 @@
         battleOverlayHp.textContent = `${entity.hp_current ?? '-'}${entity.hp_max !== null ? `/${entity.hp_max}` : ''}`;
     }
 
+    function renderDiceOverlay(state) {
+        const overlay = state.dice_overlay;
+        if (!overlay?.active) {
+            diceOverlay.classList.add('hidden');
+            lastDiceOverlayKey = '';
+            return;
+        }
+
+        const values = Array.isArray(overlay.dice_values) ? overlay.dice_values : [];
+        const diceType = overlay.dice_type || 'd6';
+        const key = `${overlay.entity?.id || 'none'}|${overlay.label || ''}|${diceType}|${values.join(',')}|${overlay.modifier}|${overlay.total_value}`;
+        const shouldAnimate = key !== lastDiceOverlayKey;
+
+        diceOverlay.classList.remove('hidden');
+        diceOverlayActor.textContent = overlay.entity?.name ? `🎲 ${overlay.entity.name}` : '🎲 Без сущности';
+        diceOverlayLabel.textContent = overlay.label || 'Бросок';
+        diceOverlaySummary.textContent = `${values.join(' + ')}${overlay.modifier ? ` ${overlay.modifier > 0 ? '+' : '-'} ${Math.abs(overlay.modifier)}` : ''} = ${overlay.total_value ?? 0}`;
+
+        if (shouldAnimate) {
+            lastDiceOverlayKey = key;
+            diceOverlayDiceList.innerHTML = '';
+            values.forEach((value, index) => {
+                const die = document.createElement('div');
+                die.className = 'dice-tile rolling';
+                die.style.animationDelay = `${index * 120}ms`;
+                die.innerHTML = `<span class="dice-type">${diceType}</span><span class="dice-value">?</span>`;
+                diceOverlayDiceList.appendChild(die);
+                setTimeout(() => {
+                    die.classList.remove('rolling');
+                    die.classList.add('settled');
+                    const valueEl = die.querySelector('.dice-value');
+                    if (valueEl) {
+                        valueEl.textContent = String(value);
+                    }
+                }, 700 + index * 140);
+            });
+        }
+    }
+
     function render(state) {
         if (state.mode === 'prep' || !state.active_map) {
             placeholder.classList.remove('hidden');
@@ -89,6 +134,7 @@
         }
 
         renderBattleOverlay(state);
+        renderDiceOverlay(state);
     }
 
     DndCommon.startPolling(render, 700);

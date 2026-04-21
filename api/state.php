@@ -38,6 +38,30 @@ $abilityRangeStmt = $pdo->query(
 $abilityRange = $abilityRangeStmt->fetch() ?: ['icon_id' => null, 'range_cells' => null, 'visible_until' => null, 'grid_x' => null, 'grid_y' => null, 'size_cells' => null];
 $abilityRangeVisible = $abilityRange['visible_until'] !== null && strtotime((string) $abilityRange['visible_until']) > time() && $abilityRange['icon_id'] !== null && $abilityRange['range_cells'] !== null;
 
+$diceOverlayStmt = $pdo->query(
+    'SELECT dos.entity_id, dos.label, dos.dice_type, dos.dice_count, dos.dice_values_json, dos.modifier, dos.total_value, dos.visible_until,
+            e.id AS entity_id_full, e.name, e.side, e.image_path
+     FROM dice_overlay_state dos
+     LEFT JOIN entities e ON e.id = dos.entity_id
+     WHERE dos.id = 1'
+);
+$diceOverlay = $diceOverlayStmt->fetch() ?: ['entity_id' => null, 'visible_until' => null];
+$diceValues = [];
+if (!empty($diceOverlay['dice_values_json'])) {
+    $decodedValues = json_decode((string) $diceOverlay['dice_values_json'], true);
+    if (is_array($decodedValues)) {
+        foreach ($decodedValues as $value) {
+            if (is_numeric($value)) {
+                $diceValues[] = (int) $value;
+            }
+        }
+    }
+}
+$diceOverlayVisible = $diceOverlay['visible_until'] !== null
+    && strtotime((string) $diceOverlay['visible_until']) > time()
+    && !empty($diceOverlay['dice_type'])
+    && !empty($diceValues);
+
 $entities = $pdo->query('SELECT id, name, side, image_path, armor_class, hp_current, hp_max, sort_order, is_visible FROM entities ORDER BY sort_order, id')->fetchAll();
 
 $icons = $pdo->query(
@@ -96,6 +120,21 @@ api_ok([
         'grid_x' => $abilityRangeVisible ? (int) $abilityRange['grid_x'] : null,
         'grid_y' => $abilityRangeVisible ? (int) $abilityRange['grid_y'] : null,
         'size_cells' => $abilityRangeVisible ? (int) $abilityRange['size_cells'] : null,
+    ],
+    'dice_overlay' => [
+        'active' => $diceOverlayVisible,
+        'entity' => $diceOverlayVisible && $diceOverlay['entity_id_full'] !== null ? [
+            'id' => (int) $diceOverlay['entity_id_full'],
+            'name' => $diceOverlay['name'],
+            'side' => $diceOverlay['side'],
+            'image_path' => $diceOverlay['image_path'],
+        ] : null,
+        'label' => $diceOverlayVisible ? (string) ($diceOverlay['label'] ?? '') : '',
+        'dice_type' => $diceOverlayVisible ? (string) $diceOverlay['dice_type'] : null,
+        'dice_count' => $diceOverlayVisible ? (int) $diceOverlay['dice_count'] : 0,
+        'dice_values' => $diceOverlayVisible ? $diceValues : [],
+        'modifier' => $diceOverlayVisible ? (int) $diceOverlay['modifier'] : 0,
+        'total_value' => $diceOverlayVisible ? (int) $diceOverlay['total_value'] : null,
     ],
     'poll_interval_ms' => (int) $config['app']['poll_interval_ms'],
 ]);
