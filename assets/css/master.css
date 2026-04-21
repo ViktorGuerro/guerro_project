@@ -45,7 +45,7 @@
     transform: rotate(-90deg);
 }
 .master-controls .panel-content {
-    overflow: hidden;
+    overflow: visible;
 }
 .master-controls .form-row {
     margin-bottom: 6px;
@@ -132,6 +132,10 @@
 }
 .item-menu {
     position: relative;
+    z-index: 1;
+}
+.item-menu.open {
+    z-index: 80;
 }
 .dropdown-menu {
     display: none;
@@ -139,7 +143,7 @@
     top: calc(100% + 6px);
     right: 0;
     min-width: 154px;
-    z-index: 35;
+    z-index: 100;
     border: 1px solid #3d3d3d;
     border-radius: 8px;
     background: #1e1e1e;
