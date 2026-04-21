@@ -251,6 +251,28 @@
     flex-wrap: wrap;
     gap: 12px;
 }
+
+.dice-group-view {
+    display: grid;
+    gap: 8px;
+}
+.dice-group-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #c7dbff;
+}
+.dice-group-tiles {
+    display: flex;
+    gap: 10px;
+}
+.dice-group-separator {
+    font-size: 36px;
+    line-height: 1;
+    font-weight: 900;
+    margin: 0 4px;
+    align-self: center;
+    color: #cad6e9;
+}
 .dice-tile {
     width: 110px;
     height: 110px;
@@ -267,6 +289,16 @@
 .dice-tile.rolling {
     animation: dice-roll .95s ease;
 }
+.dice-tile.crit-success {
+    border-color: rgba(255, 215, 66, 0.95);
+    box-shadow: 0 0 22px rgba(255, 215, 66, 0.45), inset 0 0 20px rgba(242, 217, 120, 0.2);
+    background: linear-gradient(155deg, #4b4523, #27220f);
+}
+.dice-tile.crit-fail {
+    border-color: rgba(255, 104, 104, 0.92);
+    box-shadow: 0 0 20px rgba(255, 82, 82, 0.42), inset 0 0 20px rgba(255, 120, 120, 0.16);
+    background: linear-gradient(155deg, #4a2525, #271616);
+}
 .dice-type {
     font-size: 19px;
     font-weight: 800;
@@ -282,6 +314,12 @@
     margin-top: 14px;
     font-size: 30px;
     font-weight: 900;
+}
+.dice-overlay-summary.crit-success {
+    color: #ffe28a;
+}
+.dice-overlay-summary.crit-fail {
+    color: #ff9a9a;
 }
 
 @keyframes dice-roll {

@@ -106,29 +106,13 @@
                         <input id="dice-label" type="text" placeholder="Атака / Урон / Спасбросок">
                     </div>
                 </div>
+
+                <div id="dice-groups-list" class="dice-groups-list"></div>
+
                 <div class="form-row">
-                    <div class="form-field">
-                        <label for="dice-type" class="field-label">Тип куба</label>
-                        <select id="dice-type">
-                            <option value="d4">d4</option>
-                            <option value="d6" selected>d6</option>
-                            <option value="d8">d8</option>
-                            <option value="d10">d10</option>
-                            <option value="d12">d12</option>
-                            <option value="d20">d20</option>
-                        </select>
-                    </div>
-                    <div class="form-field">
-                        <label for="dice-count" class="field-label">Количество</label>
-                        <input id="dice-count" type="number" min="1" max="20" value="1">
-                    </div>
+                    <button id="btn-add-dice-group" type="button" class="secondary">Добавить группу</button>
                 </div>
-                <div class="form-row">
-                    <div class="form-field">
-                        <label class="field-label">Значения кубов</label>
-                        <div id="dice-values-fields" class="dice-values-fields"></div>
-                    </div>
-                </div>
+
                 <div class="form-row">
                     <div class="form-field">
                         <label for="dice-modifier" class="field-label">Модификатор</label>
@@ -139,6 +123,11 @@
                         <input id="dice-total" type="text" value="0" readonly>
                     </div>
                 </div>
+
+                <div class="form-row">
+                    <div id="dice-critical-preview" class="dice-critical-preview">Обычный бросок</div>
+                </div>
+
                 <div class="form-row">
                     <button type="submit">Показать бросок</button>
                     <button id="btn-hide-dice-overlay" type="button" class="secondary">Скрыть бросок</button>

@@ -91,46 +91,98 @@
             return;
         }
 
+        const groups = Array.isArray(overlay.groups) ? overlay.groups : [];
         const signature = JSON.stringify({
             entityId: overlay.entity?.id || null,
             label: overlay.label || '',
-            diceType: overlay.dice_type || '',
-            values: overlay.dice_values || [],
+            groups,
             modifier: overlay.modifier || 0,
             total: overlay.total_value || 0,
+            criticalState: overlay.critical_state || 'none',
         });
 
         diceOverlayActor.textContent = overlay.entity?.name || 'Без сущности';
         diceOverlayLabel.textContent = overlay.label || 'Бросок';
-        diceOverlaySummary.textContent = `Σ ${overlay.total_value ?? '-'} (${(overlay.dice_values || []).join(' + ')}${overlay.modifier ? ` ${overlay.modifier > 0 ? '+' : '-'} ${Math.abs(overlay.modifier)}` : ''})`;
+
+        const groupsSummary = groups
+            .map(group => `${group.dice_count}${group.dice_type}: ${(group.dice_values || []).join(' + ')}`)
+            .join(' • ');
+        const modifierLabel = overlay.modifier ? ` ${overlay.modifier > 0 ? '+' : '-'} ${Math.abs(overlay.modifier)}` : '';
+        const criticalLabel = overlay.critical_state === 'success'
+            ? ' • Критический успех'
+            : overlay.critical_state === 'fail'
+                ? ' • Критический провал'
+                : '';
+
+        diceOverlaySummary.textContent = `${groupsSummary}${modifierLabel ? ` ${modifierLabel}` : ''} • Σ ${overlay.total_value ?? '-'}${criticalLabel}`;
+        diceOverlaySummary.classList.toggle('crit-success', overlay.critical_state === 'success');
+        diceOverlaySummary.classList.toggle('crit-fail', overlay.critical_state === 'fail');
 
         if (signature !== lastDiceSignature) {
             diceOverlayDiceList.innerHTML = '';
-            (overlay.dice_values || []).forEach((value, index) => {
-                const tile = document.createElement('div');
-                tile.className = 'dice-tile rolling';
-                tile.style.animationDelay = `${index * 90}ms`;
-                const type = document.createElement('div');
-                type.className = 'dice-type';
-                type.textContent = overlay.dice_type || '';
-                const val = document.createElement('div');
-                val.className = 'dice-value';
-                val.textContent = '?';
-                tile.appendChild(type);
-                tile.appendChild(val);
-                diceOverlayDiceList.appendChild(tile);
+            let tileOffset = 0;
 
-                setTimeout(() => {
-                    val.textContent = String(value);
-                    tile.classList.add('revealed');
-                    tile.classList.remove('rolling');
-                }, 650 + index * 120);
+            groups.forEach((group, groupIndex) => {
+                const groupWrap = document.createElement('div');
+                groupWrap.className = 'dice-group-view';
+
+                const groupTitle = document.createElement('div');
+                groupTitle.className = 'dice-group-title';
+                groupTitle.textContent = `${group.dice_count}${group.dice_type}`;
+                groupWrap.appendChild(groupTitle);
+
+                const groupTiles = document.createElement('div');
+                groupTiles.className = 'dice-group-tiles';
+
+                (group.dice_values || []).forEach((value, index) => {
+                    const tile = document.createElement('div');
+                    tile.className = 'dice-tile rolling';
+                    tile.style.animationDelay = `${tileOffset * 70}ms`;
+
+                    const isCritSuccess = group.dice_type === 'd20' && Number(value) === 20;
+                    const isCritFail = group.dice_type === 'd20' && Number(value) === 1;
+                    if (isCritSuccess) {
+                        tile.classList.add('crit-success');
+                    }
+                    if (isCritFail) {
+                        tile.classList.add('crit-fail');
+                    }
+
+                    const type = document.createElement('div');
+                    type.className = 'dice-type';
+                    type.textContent = group.dice_type || '';
+                    const val = document.createElement('div');
+                    val.className = 'dice-value';
+                    val.textContent = '?';
+                    tile.appendChild(type);
+                    tile.appendChild(val);
+                    groupTiles.appendChild(tile);
+
+                    setTimeout(() => {
+                        val.textContent = String(value);
+                        tile.classList.remove('rolling');
+                    }, 600 + tileOffset * 100);
+
+                    tileOffset += 1;
+                });
+
+                groupWrap.appendChild(groupTiles);
+                diceOverlayDiceList.appendChild(groupWrap);
+
+                if (groupIndex < groups.length - 1) {
+                    const separator = document.createElement('div');
+                    separator.className = 'dice-group-separator';
+                    separator.textContent = '+';
+                    diceOverlayDiceList.appendChild(separator);
+                }
             });
+
             lastDiceSignature = signature;
         }
 
         diceOverlay.classList.remove('hidden');
     }
+
 
     function render(state) {
         if (state.mode === 'prep' || !state.active_map) {

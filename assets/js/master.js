@@ -51,11 +51,11 @@
         diceOverlayForm: document.getElementById('dice-overlay-form'),
         diceEntity: document.getElementById('dice-entity'),
         diceLabel: document.getElementById('dice-label'),
-        diceType: document.getElementById('dice-type'),
-        diceCount: document.getElementById('dice-count'),
-        diceValuesFields: document.getElementById('dice-values-fields'),
+        diceGroupsList: document.getElementById('dice-groups-list'),
+        diceAddGroupButton: document.getElementById('btn-add-dice-group'),
         diceModifier: document.getElementById('dice-modifier'),
         diceTotal: document.getElementById('dice-total'),
+        diceCriticalPreview: document.getElementById('dice-critical-preview'),
         diceHideButton: document.getElementById('btn-hide-dice-overlay'),
     };
 
@@ -66,6 +66,7 @@
     let hoverCell = null;
     let gridFormDirty = false;
     let pauseUpdatesUntil = 0;
+    let diceGroups = [];
 
 
     function pauseUpdates(ms = 1800) {
@@ -124,67 +125,207 @@
         d20: 20,
     };
 
-    function getDiceMaxValue() {
-        return DICE_MAX_VALUES[stateEls.diceType?.value] || 6;
+    function getDiceMaxValue(diceType) {
+        return DICE_MAX_VALUES[diceType] || 6;
     }
 
-    function renderDiceValueInputs() {
-        if (!stateEls.diceValuesFields) {
+    function calculateCriticalState(groups) {
+        const d20Groups = groups.filter(group => group.dice_type === 'd20');
+        if (d20Groups.length !== 1) {
+            return 'none';
+        }
+        const singleD20 = d20Groups[0];
+        if (Number(singleD20.dice_count) !== 1 || !Array.isArray(singleD20.dice_values) || singleD20.dice_values.length !== 1) {
+            return 'none';
+        }
+        if (singleD20.dice_values[0] === 20) {
+            return 'success';
+        }
+        if (singleD20.dice_values[0] === 1) {
+            return 'fail';
+        }
+        return 'none';
+    }
+
+    function createDefaultDiceGroup() {
+        return {
+            dice_type: 'd6',
+            dice_count: 1,
+            dice_values: [null],
+        };
+    }
+
+    function sanitizeGroup(group) {
+        const diceType = DICE_MAX_VALUES[group.dice_type] ? group.dice_type : 'd6';
+        const maxValue = getDiceMaxValue(diceType);
+        const diceCount = Math.min(20, Math.max(1, Number(group.dice_count) || 1));
+        const diceValues = Array.from({ length: diceCount }, (_, index) => {
+            const raw = group.dice_values?.[index];
+            const parsed = Number(raw);
+            if (!Number.isInteger(parsed) || parsed < 1 || parsed > maxValue) {
+                return null;
+            }
+            return parsed;
+        });
+
+        return {
+            dice_type: diceType,
+            dice_count: diceCount,
+            dice_values: diceValues,
+        };
+    }
+
+    function renderDiceGroups() {
+        if (!stateEls.diceGroupsList) {
             return;
         }
-        const maxValue = getDiceMaxValue();
-        const count = Math.max(1, Number(stateEls.diceCount?.value || 1));
-        const previousValues = Array.from(stateEls.diceValuesFields.querySelectorAll('input')).map(input => input.value);
-        stateEls.diceValuesFields.innerHTML = '';
 
-        for (let i = 0; i < count; i += 1) {
-            const field = document.createElement('div');
-            field.className = 'dice-value-item';
-            const input = document.createElement('input');
-            input.type = 'number';
-            input.min = '1';
-            input.max = String(maxValue);
-            input.value = previousValues[i] || '';
-            input.placeholder = `Куб ${i + 1}`;
-            input.dataset.index = String(i);
-            input.className = 'dice-value-input';
-            input.addEventListener('input', () => {
-                const value = Number(input.value || 0);
-                if (value > maxValue) {
-                    input.value = String(maxValue);
+        stateEls.diceGroupsList.innerHTML = '';
+
+        diceGroups.forEach((group, groupIndex) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'dice-group-item';
+
+            const header = document.createElement('div');
+            header.className = 'dice-group-header';
+            header.innerHTML = `<strong>Группа ${groupIndex + 1}</strong>`;
+
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'secondary dice-group-remove';
+            removeButton.textContent = 'Удалить группу';
+            removeButton.disabled = diceGroups.length <= 1;
+            removeButton.addEventListener('click', () => {
+                diceGroups = diceGroups.filter((_, index) => index !== groupIndex);
+                if (!diceGroups.length) {
+                    diceGroups = [createDefaultDiceGroup()];
                 }
-                if (value < 0) {
-                    input.value = '1';
+                renderDiceGroups();
+            });
+            header.appendChild(removeButton);
+            wrapper.appendChild(header);
+
+            const controls = document.createElement('div');
+            controls.className = 'dice-group-controls';
+            controls.innerHTML = `
+                <div class="form-field">
+                    <label class="field-label">Тип куба</label>
+                    <select data-role="dice-type" data-index="${groupIndex}">
+                        <option value="d4" ${group.dice_type === 'd4' ? 'selected' : ''}>d4</option>
+                        <option value="d6" ${group.dice_type === 'd6' ? 'selected' : ''}>d6</option>
+                        <option value="d8" ${group.dice_type === 'd8' ? 'selected' : ''}>d8</option>
+                        <option value="d10" ${group.dice_type === 'd10' ? 'selected' : ''}>d10</option>
+                        <option value="d12" ${group.dice_type === 'd12' ? 'selected' : ''}>d12</option>
+                        <option value="d20" ${group.dice_type === 'd20' ? 'selected' : ''}>d20</option>
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label class="field-label">Количество</label>
+                    <input type="number" min="1" max="20" data-role="dice-count" data-index="${groupIndex}" value="${group.dice_count}">
+                </div>
+            `;
+            wrapper.appendChild(controls);
+
+            const valuesWrap = document.createElement('div');
+            valuesWrap.className = 'dice-values-fields';
+            const maxValue = getDiceMaxValue(group.dice_type);
+            for (let valueIndex = 0; valueIndex < group.dice_count; valueIndex += 1) {
+                const valueInput = document.createElement('input');
+                valueInput.type = 'number';
+                valueInput.min = '1';
+                valueInput.max = String(maxValue);
+                valueInput.placeholder = `Куб ${valueIndex + 1}`;
+                valueInput.value = group.dice_values[valueIndex] ?? '';
+                valueInput.dataset.role = 'dice-value';
+                valueInput.dataset.index = String(groupIndex);
+                valueInput.dataset.valueIndex = String(valueIndex);
+                valuesWrap.appendChild(valueInput);
+            }
+            wrapper.appendChild(valuesWrap);
+
+            stateEls.diceGroupsList.appendChild(wrapper);
+        });
+
+        stateEls.diceGroupsList.querySelectorAll('[data-role="dice-type"]').forEach(select => {
+            select.addEventListener('change', e => {
+                const index = Number(e.target.dataset.index);
+                diceGroups[index].dice_type = e.target.value;
+                diceGroups[index] = sanitizeGroup(diceGroups[index]);
+                renderDiceGroups();
+            });
+        });
+
+        stateEls.diceGroupsList.querySelectorAll('[data-role="dice-count"]').forEach(input => {
+            input.addEventListener('input', e => {
+                const index = Number(e.target.dataset.index);
+                diceGroups[index].dice_count = Number(e.target.value || 1);
+                diceGroups[index] = sanitizeGroup(diceGroups[index]);
+                renderDiceGroups();
+            });
+        });
+
+        stateEls.diceGroupsList.querySelectorAll('[data-role="dice-value"]').forEach(input => {
+            input.addEventListener('input', e => {
+                const groupIndex = Number(e.target.dataset.index);
+                const valueIndex = Number(e.target.dataset.valueIndex);
+                const max = getDiceMaxValue(diceGroups[groupIndex].dice_type);
+                const raw = Number(e.target.value);
+                if (Number.isInteger(raw) && raw >= 1 && raw <= max) {
+                    diceGroups[groupIndex].dice_values[valueIndex] = raw;
+                } else {
+                    diceGroups[groupIndex].dice_values[valueIndex] = null;
                 }
                 recalculateDiceTotal();
             });
-            field.appendChild(input);
-            stateEls.diceValuesFields.appendChild(field);
-        }
+        });
+
         recalculateDiceTotal();
     }
 
     function recalculateDiceTotal() {
-        if (!stateEls.diceTotal || !stateEls.diceValuesFields) {
+        if (!stateEls.diceTotal) {
             return;
         }
-        const values = Array.from(stateEls.diceValuesFields.querySelectorAll('input')).map(input => Number(input.value || 0));
+        const valuesSum = diceGroups.reduce((sum, group) => {
+            const groupSum = (group.dice_values || []).reduce((acc, value) => acc + (Number.isInteger(value) ? value : 0), 0);
+            return sum + groupSum;
+        }, 0);
+
         const modifier = Number(stateEls.diceModifier?.value || 0);
-        const total = values.reduce((acc, value) => acc + (Number.isFinite(value) ? value : 0), 0) + modifier;
+        const total = valuesSum + (Number.isFinite(modifier) ? modifier : 0);
         stateEls.diceTotal.value = String(total);
+
+        const criticalState = calculateCriticalState(diceGroups);
+        if (stateEls.diceCriticalPreview) {
+            stateEls.diceCriticalPreview.classList.remove('crit-success', 'crit-fail');
+            if (criticalState === 'success') {
+                stateEls.diceCriticalPreview.textContent = 'Критический успех';
+                stateEls.diceCriticalPreview.classList.add('crit-success');
+            } else if (criticalState === 'fail') {
+                stateEls.diceCriticalPreview.textContent = 'Критический провал';
+                stateEls.diceCriticalPreview.classList.add('crit-fail');
+            } else {
+                stateEls.diceCriticalPreview.textContent = 'Обычный бросок';
+            }
+        }
     }
 
-    function getDiceValuesFromInputs() {
-        const maxValue = getDiceMaxValue();
-        const values = Array.from(stateEls.diceValuesFields.querySelectorAll('input')).map((input, index) => {
-            const value = Number(input.value);
-            if (!Number.isInteger(value) || value < 1 || value > maxValue) {
-                throw new Error(`Введите корректное значение для куба ${index + 1}: 1..${maxValue}`);
+    function getValidatedDiceGroups() {
+        const groups = diceGroups.map(sanitizeGroup);
+        groups.forEach((group, groupIndex) => {
+            const maxValue = getDiceMaxValue(group.dice_type);
+            if ((group.dice_values || []).length !== group.dice_count) {
+                throw new Error(`Группа ${groupIndex + 1}: неверное количество значений`);
             }
-            return value;
+            group.dice_values.forEach((value, valueIndex) => {
+                if (!Number.isInteger(value) || value < 1 || value > maxValue) {
+                    throw new Error(`Группа ${groupIndex + 1}, куб ${valueIndex + 1}: нужно значение 1..${maxValue}`);
+                }
+            });
         });
-        return values;
+        return groups;
     }
+
 
 
     function setEntityEditing(entity = null) {
@@ -831,46 +972,35 @@
             await postForm('/api/hide_battle_overlay.php', {});
         });
 
-        stateEls.diceType?.addEventListener('change', renderDiceValueInputs);
-        stateEls.diceCount?.addEventListener('input', () => {
-            stateEls.diceCount.value = String(Math.min(20, Math.max(1, Number(stateEls.diceCount.value || 1))));
-            renderDiceValueInputs();
+        stateEls.diceAddGroupButton?.addEventListener('click', () => {
+            diceGroups.push(createDefaultDiceGroup());
+            renderDiceGroups();
         });
         stateEls.diceModifier?.addEventListener('input', recalculateDiceTotal);
 
         stateEls.diceOverlayForm?.addEventListener('submit', async e => {
             pauseUpdates(2200);
             e.preventDefault();
-            const diceCount = Math.max(1, Number(stateEls.diceCount.value || 1));
-            let diceValues = [];
+            let groups = [];
             try {
-                diceValues = getDiceValuesFromInputs();
+                groups = getValidatedDiceGroups();
             } catch (error) {
-                alert(error.message || 'Проверьте значения кубов.');
-                return;
-            }
-
-            if (diceValues.length !== diceCount) {
-                alert('Количество значений кубов не совпадает с выбранным количеством.');
+                alert(error.message || 'Проверьте значения групп кубов.');
                 return;
             }
 
             const modifier = Number(stateEls.diceModifier.value || 0);
             const payload = {
                 label: (stateEls.diceLabel.value || '').trim(),
-                dice_type: stateEls.diceType.value,
-                dice_count: diceCount,
                 modifier: Number.isInteger(modifier) ? modifier : 0,
+                groups_json: JSON.stringify(groups),
             };
             const entityId = Number(stateEls.diceEntity.value || 0);
             if (entityId > 0) {
                 payload.entity_id = entityId;
             }
 
-            const form = new FormData();
-            Object.entries(payload).forEach(([key, value]) => form.append(key, value));
-            diceValues.forEach(value => form.append('dice_values[]', String(value)));
-            await postForm('/api/show_dice_overlay.php', form, true);
+            await postForm('/api/show_dice_overlay.php', payload);
         });
 
         stateEls.diceHideButton?.addEventListener('click', async () => {
@@ -1070,7 +1200,10 @@
             stateEls.hoverLayer.innerHTML = '';
         });
 
-        renderDiceValueInputs();
+        if (!diceGroups.length) {
+            diceGroups = [createDefaultDiceGroup()];
+        }
+        renderDiceGroups();
 
         const notes = document.getElementById('notes');
         notes.value = localStorage.getItem('master_notes') || '';

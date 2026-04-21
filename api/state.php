@@ -61,6 +61,7 @@ $diceOverlayStmt = $pdo->query(
     'SELECT
         dos.entity_id,
         dos.label,
+        dos.dice_groups_json,
         dos.dice_type,
         dos.dice_count,
         dos.dice_values_json,
@@ -86,20 +87,75 @@ $diceOverlay = $diceOverlayStmt->fetch() ?: [
     'visible_until' => null,
     'dice_entity_id' => null,
 ];
-$diceValues = [];
-if ($diceOverlay['dice_values_json'] !== null) {
-    $decodedValues = json_decode((string) $diceOverlay['dice_values_json'], true);
-    if (is_array($decodedValues)) {
-        $diceValues = array_values(array_filter(array_map(static function ($value): ?int {
-            return is_int($value) ? $value : (filter_var($value, FILTER_VALIDATE_INT) !== false ? (int) $value : null);
-        }, $decodedValues), static fn ($value): bool => $value !== null));
+$diceGroups = [];
+if ($diceOverlay['dice_groups_json'] !== null) {
+    $decodedGroups = json_decode((string) $diceOverlay['dice_groups_json'], true);
+    if (is_array($decodedGroups)) {
+        foreach ($decodedGroups as $group) {
+            if (!is_array($group)) {
+                continue;
+            }
+            $diceType = isset($group['dice_type']) ? (string) $group['dice_type'] : null;
+            $diceCount = filter_var($group['dice_count'] ?? null, FILTER_VALIDATE_INT);
+            $rawValues = $group['dice_values'] ?? null;
+            if ($diceType === null || $diceCount === false || !is_array($rawValues)) {
+                continue;
+            }
+
+            $diceValues = [];
+            foreach ($rawValues as $rawValue) {
+                $value = filter_var($rawValue, FILTER_VALIDATE_INT);
+                if ($value !== false) {
+                    $diceValues[] = (int) $value;
+                }
+            }
+
+            if (count($diceValues) !== (int) $diceCount) {
+                continue;
+            }
+
+            $diceGroups[] = [
+                'dice_type' => $diceType,
+                'dice_count' => (int) $diceCount,
+                'dice_values' => $diceValues,
+            ];
+        }
     }
 }
+
+if (!$diceGroups && $diceOverlay['dice_type'] !== null && $diceOverlay['dice_count'] !== null && $diceOverlay['dice_values_json'] !== null) {
+    $decodedValues = json_decode((string) $diceOverlay['dice_values_json'], true);
+    if (is_array($decodedValues)) {
+        $diceValues = [];
+        foreach ($decodedValues as $decodedValue) {
+            $value = filter_var($decodedValue, FILTER_VALIDATE_INT);
+            if ($value !== false) {
+                $diceValues[] = (int) $value;
+            }
+        }
+        if (count($diceValues) === (int) $diceOverlay['dice_count']) {
+            $diceGroups[] = [
+                'dice_type' => (string) $diceOverlay['dice_type'],
+                'dice_count' => (int) $diceOverlay['dice_count'],
+                'dice_values' => $diceValues,
+            ];
+        }
+    }
+}
+
+$d20Groups = array_values(array_filter($diceGroups, static fn (array $group): bool => $group['dice_type'] === 'd20'));
+$criticalState = 'none';
+if (count($d20Groups) === 1 && $d20Groups[0]['dice_count'] === 1 && count($d20Groups[0]['dice_values']) === 1) {
+    if ($d20Groups[0]['dice_values'][0] === 20) {
+        $criticalState = 'success';
+    } elseif ($d20Groups[0]['dice_values'][0] === 1) {
+        $criticalState = 'fail';
+    }
+}
+
 $diceOverlayVisible = $diceOverlay['visible_until'] !== null
     && strtotime((string) $diceOverlay['visible_until']) > time()
-    && $diceOverlay['dice_type'] !== null
-    && $diceOverlay['dice_count'] !== null
-    && count($diceValues) === (int) $diceOverlay['dice_count'];
+    && count($diceGroups) > 0;
 
 $abilityRangeStmt = $pdo->query(
     'SELECT ars.icon_id, ars.range_cells, ars.visible_until, mi.grid_x, mi.grid_y, mi.size_cells
@@ -180,11 +236,10 @@ api_ok([
             'image_path' => $diceOverlay['dice_entity_image_path'],
         ] : null,
         'label' => $diceOverlayVisible ? $diceOverlay['label'] : null,
-        'dice_type' => $diceOverlayVisible ? $diceOverlay['dice_type'] : null,
-        'dice_count' => $diceOverlayVisible ? (int) $diceOverlay['dice_count'] : null,
-        'dice_values' => $diceOverlayVisible ? array_map(static fn ($value): int => (int) $value, $diceValues) : [],
+        'groups' => $diceOverlayVisible ? $diceGroups : [],
         'modifier' => $diceOverlayVisible ? (int) $diceOverlay['modifier'] : 0,
         'total_value' => $diceOverlayVisible ? (int) $diceOverlay['total_value'] : null,
+        'critical_state' => $diceOverlayVisible ? $criticalState : 'none',
     ],
     'ability_overlay' => [
         'active' => $abilityRangeVisible,
