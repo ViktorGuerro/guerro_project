@@ -8,12 +8,12 @@ require __DIR__ . '/../inc/helpers.php';
 $config = require __DIR__ . '/../inc/config.php';
 
 $stateStmt = $pdo->query(
-    'SELECT gs.mode, gs.grid_cell_size, gs.active_map_id, m.id AS map_id, m.title AS map_title, m.file_path AS map_file_path
+    'SELECT gs.mode, gs.grid_enabled, gs.grid_cell_size, gs.active_map_id, m.id AS map_id, m.title AS map_title, m.file_path AS map_file_path
      FROM game_state gs
      LEFT JOIN maps m ON m.id = gs.active_map_id
      WHERE gs.id = 1'
 );
-$state = $stateStmt->fetch() ?: ['mode' => 'prep', 'grid_cell_size' => 70, 'active_map_id' => null];
+$state = $stateStmt->fetch() ?: ['mode' => 'prep', 'grid_enabled' => 1, 'grid_cell_size' => 70, 'active_map_id' => null];
 
 $dcStmt = $pdo->query('SELECT dc_value, visible_until FROM dc_state WHERE id = 1');
 $dc = $dcStmt->fetch() ?: ['dc_value' => null, 'visible_until' => null];
@@ -35,6 +35,7 @@ api_ok([
         'title' => $state['map_title'],
         'file_path' => $state['map_file_path'],
     ] : null,
+    'grid_enabled' => (bool) $state['grid_enabled'],
     'grid_cell_size' => (int) $state['grid_cell_size'],
     'dc_value' => $dcVisible ? ($dc['dc_value'] !== null ? (int) $dc['dc_value'] : null) : null,
     'dc_visible' => $dcVisible,

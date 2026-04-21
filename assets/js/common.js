@@ -29,7 +29,11 @@
         return payload.data;
     }
 
-    function renderGrid(layer, cellSize) {
+    function renderGrid(layer, cellSize, enabled = true) {
+        layer.style.display = enabled ? 'block' : 'none';
+        if (!enabled) {
+            return;
+        }
         layer.style.backgroundSize = `${cellSize}px ${cellSize}px`;
     }
 

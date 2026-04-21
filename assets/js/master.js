@@ -3,6 +3,8 @@
         mapImage: document.getElementById('master-map-image'),
         gridLayer: document.getElementById('master-grid-layer'),
         iconsLayer: document.getElementById('master-icons-layer'),
+        gridEnabled: document.getElementById('grid-enabled'),
+        gridCellSize: document.getElementById('grid-cell-size'),
         mapList: document.getElementById('map-list'),
         entityList: document.getElementById('entity-list'),
         addIconEntity: document.getElementById('add-icon-entity')
@@ -46,7 +48,9 @@
         if (state.active_map) {
             stateEls.mapImage.src = state.active_map.file_path;
         }
-        DndCommon.renderGrid(stateEls.gridLayer, state.grid_cell_size);
+        stateEls.gridEnabled.checked = Boolean(state.grid_enabled);
+        stateEls.gridCellSize.value = state.grid_cell_size;
+        DndCommon.renderGrid(stateEls.gridLayer, state.grid_cell_size, state.grid_enabled);
         DndCommon.renderIcons(stateEls.iconsLayer, state.icons, state.grid_cell_size, true, async e => {
             e.preventDefault();
             const id = Number(e.dataTransfer.getData('text/plain'));
@@ -77,8 +81,10 @@
 
         document.getElementById('grid-form').addEventListener('submit', async e => {
             e.preventDefault();
-            const size = document.getElementById('grid-cell-size').value;
-            await postForm('/api/update_state.php', { grid_cell_size: size });
+            await postForm('/api/update_state.php', {
+                grid_cell_size: stateEls.gridCellSize.value,
+                grid_enabled: stateEls.gridEnabled.checked ? 1 : 0
+            });
         });
 
         document.getElementById('dc-show-form').addEventListener('submit', async e => {

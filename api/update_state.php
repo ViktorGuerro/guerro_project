@@ -7,6 +7,16 @@ require __DIR__ . '/../inc/helpers.php';
 
 $activeMapId = post_int('active_map_id');
 $gridCellSize = post_int('grid_cell_size');
+$gridEnabled = null;
+
+if (array_key_exists('grid_enabled', $_POST)) {
+    $rawGridEnabled = trim((string) $_POST['grid_enabled']);
+    if ($rawGridEnabled !== '0' && $rawGridEnabled !== '1') {
+        api_error('invalid_grid_enabled');
+    }
+
+    $gridEnabled = (int) $rawGridEnabled;
+}
 
 if ($gridCellSize !== null && ($gridCellSize < 20 || $gridCellSize > 300)) {
     api_error('invalid_grid_cell_size');
@@ -32,6 +42,10 @@ if ($activeMapId !== null) {
 if ($gridCellSize !== null) {
     $sets[] = 'grid_cell_size = :grid_cell_size';
     $params['grid_cell_size'] = $gridCellSize;
+}
+if ($gridEnabled !== null) {
+    $sets[] = 'grid_enabled = :grid_enabled';
+    $params['grid_enabled'] = $gridEnabled;
 }
 
 if ($sets !== []) {

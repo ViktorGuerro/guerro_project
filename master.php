@@ -32,7 +32,10 @@
         <div class="panel">
             <h3>Сетка</h3>
             <form id="grid-form">
-                <div class="form-row"><input id="grid-cell-size" name="grid_cell_size" type="number" min="20" max="300" value="70"></div>
+                <div class="form-row">
+                    <label><input id="grid-enabled" name="grid_enabled" type="checkbox" checked> Показывать сетку</label>
+                </div>
+                <div class="form-row"><input id="grid-cell-size" name="grid_cell_size" type="number" min="20" max="300" value="70" placeholder="Размер клетки, px"></div>
                 <div class="form-row"><button type="submit">Применить</button></div>
             </form>
         </div>
