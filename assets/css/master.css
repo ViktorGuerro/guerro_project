@@ -1,23 +1,26 @@
 .master-layout {
     display: grid;
-    grid-template-columns: minmax(760px, 58%) minmax(320px, 42%);
+    grid-template-columns: minmax(560px, 42%) minmax(560px, 1fr);
     gap: 12px;
     min-height: 100vh;
     padding: 12px;
 }
 .master-controls {
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: visible;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 300px));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 10px;
     align-content: start;
     max-height: calc(100vh - 24px);
+    padding-right: 4px;
 }
 .master-controls .panel {
-    width: 300px;
+    width: 100%;
     max-width: 100%;
     margin-bottom: 0;
     padding: 10px;
+    min-width: 0;
 }
 .master-controls .panel h3 {
     margin: 0 0 8px;
@@ -34,30 +37,133 @@
 .master-controls button,
 .master-controls textarea {
     width: 100%;
-}
-.master-controls input,
-.master-controls select,
-.master-controls button,
-.master-controls textarea {
     padding: 6px;
 }
+.form-row-split {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.form-row-split > input {
+    flex: 1;
+}
+.inline-adjust {
+    display: flex;
+    gap: 4px;
+}
+.inline-adjust .quick-adjust {
+    width: auto;
+    min-width: 38px;
+    padding: 6px 8px;
+}
+
 #master-map-stage {
     height: calc(100vh - 24px);
     border-radius: 12px;
-    opacity: 0.78;
+    opacity: 0.9;
+    min-width: 0;
 }
-.entity-list-item, .map-list-item {
+
+.list-item {
     display: flex;
     gap: 8px;
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid #383838;
-    padding: 4px 0;
+    padding: 6px 0;
+    position: relative;
 }
-.row-actions {
+.item-title {
+    min-width: 0;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 14px;
+}
+.item-controls {
     display: flex;
+    align-items: center;
     gap: 6px;
+    flex-shrink: 0;
 }
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid #4f6656;
+    background: #22372a;
+    color: #d8f4db;
+    font-size: 12px;
+    font-weight: 700;
+}
+.menu-toggle {
+    width: 32px !important;
+    height: 32px;
+    padding: 0 !important;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 700;
+    line-height: 1;
+}
+.item-menu {
+    position: relative;
+}
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 154px;
+    z-index: 35;
+    border: 1px solid #3d3d3d;
+    border-radius: 8px;
+    background: #1e1e1e;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+.item-menu.open .dropdown-menu {
+    display: block;
+}
+.dropdown-menu button {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    text-align: left;
+    padding: 8px 10px;
+    font-size: 13px;
+}
+.dropdown-menu button:hover {
+    background: #2f2f2f;
+}
+
+.icon-quick-controls {
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    padding: 8px;
+    margin-bottom: 8px;
+}
+.icon-quick-title {
+    font-size: 12px;
+    color: #c6c6c6;
+    margin-bottom: 5px;
+}
+.move-pad,
+.size-pad {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    margin-bottom: 8px;
+}
+.move-pad .icon-step,
+.size-pad .icon-size-step {
+    padding: 7px;
+    font-size: 16px;
+}
+
 #notes { width: 100%; min-height: 78px; }
 #master-icons-layer { pointer-events: auto; }
 #selected-icon-meta {
@@ -66,7 +172,34 @@
     margin-bottom: 6px;
 }
 .icon.selected {
-    border-color: #ffe45a;
-    box-shadow: 0 0 0 2px rgba(255, 228, 90, 0.45), 0 0 14px rgba(255, 228, 90, 0.9);
-    z-index: 4;
+    border-color: #ffd84a;
+    box-shadow: 0 0 0 3px rgba(255, 216, 74, 0.65), 0 0 18px rgba(255, 216, 74, 1);
+    z-index: 8;
+}
+
+@media (max-width: 1600px) {
+    .master-layout {
+        grid-template-columns: minmax(500px, 48%) minmax(500px, 1fr);
+    }
+}
+
+@media (max-width: 1366px) {
+    .master-layout {
+        grid-template-columns: minmax(430px, 46%) minmax(460px, 1fr);
+        gap: 10px;
+        padding: 10px;
+    }
+
+    .master-controls {
+        grid-template-columns: 1fr;
+        max-height: calc(100vh - 20px);
+    }
+
+    #master-map-stage {
+        height: calc(100vh - 20px);
+    }
+
+    .item-title {
+        font-size: 13px;
+    }
 }

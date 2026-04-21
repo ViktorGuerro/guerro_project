@@ -1,6 +1,7 @@
 (function () {
     const stateEls = {
         mapImage: document.getElementById('master-map-image'),
+        mapStage: document.getElementById('master-map-stage'),
         gridLayer: document.getElementById('master-grid-layer'),
         iconsLayer: document.getElementById('master-icons-layer'),
         gridEnabled: document.getElementById('grid-enabled'),
@@ -35,6 +36,23 @@
     let editingEntityId = null;
     let selectedIconId = null;
     let gridFormDirty = false;
+
+    function closeAllActionMenus() {
+        document.querySelectorAll('.item-menu.open').forEach(menu => menu.classList.remove('open'));
+    }
+
+    function toggleActionMenu(button) {
+        const container = button.closest('.item-menu');
+        if (!container) {
+            return;
+        }
+
+        const isOpen = container.classList.contains('open');
+        closeAllActionMenus();
+        if (!isOpen) {
+            container.classList.add('open');
+        }
+    }
 
     async function postForm(url, entries, isMultipart = false) {
         const form = isMultipart ? entries : new FormData();
@@ -78,7 +96,7 @@
         }
 
         stateEls.selectedIconPanel.classList.remove('hidden');
-        stateEls.selectedIconMeta.textContent = `#${icon.id} — ${icon.name || 'Без имени'}`;
+        stateEls.selectedIconMeta.textContent = `#${icon.id} — ${icon.name || 'Без имени'} (${icon.grid_x}, ${icon.grid_y})`;
         stateEls.selectedIconGridX.value = icon.grid_x;
         stateEls.selectedIconGridY.value = icon.grid_y;
         stateEls.selectedIconSizeCells.value = icon.size_cells;
@@ -87,12 +105,19 @@
     function fillMapList() {
         DndCommon.apiGet('/api/list_maps.php').then(payload => {
             const maps = payload.ok ? payload.data.maps : [];
-            stateEls.mapList.innerHTML = maps.map(m => `<div class="map-list-item">
-                <span>${DndCommon.escapeHtml(m.title)}</span>
-                <div class="row-actions">
-                    <button data-id="${m.id}" class="activate-map">${m.is_active ? 'Активна' : 'Активировать'}</button>
-                    <button data-id="${m.id}" data-title="${DndCommon.escapeHtml(m.title)}" class="rename-map secondary" type="button">Переименовать</button>
-                    <button data-id="${m.id}" class="delete-map danger" type="button">Удалить</button>
+            stateEls.mapList.innerHTML = maps.map(m => `<div class="list-item map-list-item">
+                <span class="item-title">${DndCommon.escapeHtml(m.title)}</span>
+                <div class="item-controls">
+                    ${m.is_active
+            ? '<span class="status-badge">Активна</span>'
+            : `<button data-id="${m.id}" class="activate-map" type="button">Активировать</button>`}
+                    <div class="item-menu" data-type="map" data-id="${m.id}">
+                        <button type="button" class="menu-toggle" aria-label="Действия карты">...</button>
+                        <div class="dropdown-menu">
+                            <button data-id="${m.id}" data-title="${DndCommon.escapeHtml(m.title)}" class="rename-map" type="button">Переименовать</button>
+                            <button data-id="${m.id}" class="delete-map danger" type="button">Удалить</button>
+                        </div>
+                    </div>
                 </div>
             </div>`).join('');
         });
@@ -100,11 +125,16 @@
 
     function fillEntityList(state) {
         const entities = state.entities;
-        stateEls.entityList.innerHTML = entities.map(e => `<div class="entity-list-item">
-            <span>${DndCommon.escapeHtml(e.name)} (${e.side})</span>
-            <div class="row-actions">
-                <button class="edit-entity secondary" data-id="${e.id}" type="button">Редактировать</button>
-                <button class="danger del-entity" data-id="${e.id}" type="button">Удалить</button>
+        stateEls.entityList.innerHTML = entities.map(e => `<div class="list-item entity-list-item">
+            <span class="item-title">${DndCommon.escapeHtml(e.name)} (${e.side}) • КД ${e.armor_class ?? '-'} • ХП ${e.hp_current ?? '-'}${e.hp_max !== null ? `/${e.hp_max}` : ''}</span>
+            <div class="item-controls">
+                <div class="item-menu" data-type="entity" data-id="${e.id}">
+                    <button type="button" class="menu-toggle" aria-label="Действия сущности">...</button>
+                    <div class="dropdown-menu">
+                        <button class="edit-entity" data-id="${e.id}" type="button">Редактировать</button>
+                        <button class="danger del-entity" data-id="${e.id}" type="button">Удалить</button>
+                    </div>
+                </div>
             </div>
         </div>`).join('');
 
@@ -157,6 +187,58 @@
         });
     }
 
+    function changeInputValue(inputId, delta, min = null, max = null) {
+        const input = document.getElementById(inputId);
+        if (!input) {
+            return;
+        }
+        const current = Number(input.value || 0);
+        let next = current + delta;
+        if (min !== null) {
+            next = Math.max(min, next);
+        }
+        if (max !== null) {
+            next = Math.min(max, next);
+        }
+        input.value = String(next);
+    }
+
+    async function moveSelectedIcon(dx, dy) {
+        if (!selectedIconId || !latestState) {
+            return;
+        }
+
+        const icon = latestState.icons.find(i => Number(i.id) === Number(selectedIconId));
+        if (!icon) {
+            return;
+        }
+
+        await postForm('/api/move_icon.php', {
+            id: selectedIconId,
+            grid_x: Math.max(0, Number(icon.grid_x) + dx),
+            grid_y: Math.max(0, Number(icon.grid_y) + dy),
+        });
+    }
+
+    async function resizeSelectedIcon(delta) {
+        if (!selectedIconId || !latestState) {
+            return;
+        }
+
+        const icon = latestState.icons.find(i => Number(i.id) === Number(selectedIconId));
+        if (!icon) {
+            return;
+        }
+
+        const nextSize = Math.min(4, Math.max(1, Number(icon.size_cells) + delta));
+        await postForm('/api/update_icon.php', {
+            id: selectedIconId,
+            grid_x: icon.grid_x,
+            grid_y: icon.grid_y,
+            size_cells: nextSize,
+        });
+    }
+
     function bindForms() {
         document.getElementById('btn-mode-prep').onclick = () => postForm('/api/toggle_mode.php', { mode: 'prep' });
         document.getElementById('btn-mode-map').onclick = () => postForm('/api/toggle_mode.php', { mode: 'map' });
@@ -168,23 +250,35 @@
             e.currentTarget.reset();
         });
 
-        document.getElementById('map-list').addEventListener('click', async e => {
-            if (e.target.classList.contains('activate-map')) {
-                await postForm('/api/update_state.php', { active_map_id: Number(e.target.dataset.id) });
+        stateEls.mapList.addEventListener('click', async e => {
+            const target = e.target;
+            if (!(target instanceof HTMLElement)) {
+                return;
             }
-            if (e.target.classList.contains('rename-map')) {
-                const id = Number(e.target.dataset.id);
-                const currentTitle = e.target.dataset.title || '';
+
+            if (target.classList.contains('menu-toggle')) {
+                toggleActionMenu(target);
+                return;
+            }
+
+            if (target.classList.contains('activate-map')) {
+                await postForm('/api/update_state.php', { active_map_id: Number(target.dataset.id) });
+            }
+            if (target.classList.contains('rename-map')) {
+                const id = Number(target.dataset.id);
+                const currentTitle = target.dataset.title || '';
                 const title = prompt('Введите новое название карты', currentTitle);
                 if (title !== null && title.trim()) {
                     await postForm('/api/update_map.php', { id, title: title.trim() });
                 }
+                closeAllActionMenus();
             }
-            if (e.target.classList.contains('delete-map')) {
-                const id = Number(e.target.dataset.id);
+            if (target.classList.contains('delete-map')) {
+                const id = Number(target.dataset.id);
                 if (confirm('Удалить карту?')) {
                     await postForm('/api/delete_map.php', { id });
                 }
+                closeAllActionMenus();
             }
         });
 
@@ -225,16 +319,30 @@
 
         stateEls.entityCancel.addEventListener('click', () => setEntityEditing(null));
 
-        document.getElementById('entity-list').addEventListener('click', async e => {
-            if (e.target.classList.contains('del-entity')) {
-                await postForm('/api/delete_entity.php', { id: Number(e.target.dataset.id) });
+        stateEls.entityList.addEventListener('click', async e => {
+            const target = e.target;
+            if (!(target instanceof HTMLElement)) {
+                return;
             }
-            if (e.target.classList.contains('edit-entity')) {
-                const id = Number(e.target.dataset.id);
+
+            if (target.classList.contains('menu-toggle')) {
+                toggleActionMenu(target);
+                return;
+            }
+
+            if (target.classList.contains('del-entity')) {
+                if (confirm('Удалить сущность?')) {
+                    await postForm('/api/delete_entity.php', { id: Number(target.dataset.id) });
+                }
+                closeAllActionMenus();
+            }
+            if (target.classList.contains('edit-entity')) {
+                const id = Number(target.dataset.id);
                 const entity = latestState?.entities.find(row => Number(row.id) === id);
                 if (entity) {
                     setEntityEditing(entity);
                 }
+                closeAllActionMenus();
             }
         });
 
@@ -265,8 +373,50 @@
             if (!selectedIconId) {
                 return;
             }
-            await postForm('/api/delete_icon.php', { id: selectedIconId });
-            setSelectedIcon(null);
+            if (confirm('Удалить иконку?')) {
+                await postForm('/api/delete_icon.php', { id: selectedIconId });
+                setSelectedIcon(null);
+            }
+        });
+
+        document.querySelectorAll('.icon-step').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const dir = btn.dataset.dir;
+                const shifts = {
+                    left: [-1, 0],
+                    right: [1, 0],
+                    up: [0, -1],
+                    down: [0, 1],
+                };
+                const [dx, dy] = shifts[dir] || [0, 0];
+                await moveSelectedIcon(dx, dy);
+            });
+        });
+
+        document.querySelectorAll('.icon-size-step').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                await resizeSelectedIcon(Number(btn.dataset.delta || 0));
+            });
+        });
+
+        stateEls.entityForm.querySelectorAll('.quick-adjust').forEach(button => {
+            button.addEventListener('click', () => {
+                const targetId = button.dataset.target;
+                const delta = Number(button.dataset.delta || 0);
+                changeInputValue(targetId, delta, 0);
+            });
+        });
+
+        stateEls.mapStage.addEventListener('click', e => {
+            if (e.target === stateEls.iconsLayer || e.target === stateEls.gridLayer || e.target === stateEls.mapImage || e.target === stateEls.mapStage) {
+                setSelectedIcon(null);
+            }
+        });
+
+        document.addEventListener('click', e => {
+            if (!(e.target instanceof Element) || !e.target.closest('.item-menu')) {
+                closeAllActionMenus();
+            }
         });
 
         const notes = document.getElementById('notes');

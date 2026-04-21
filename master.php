@@ -55,7 +55,8 @@
                 <div class="form-row"><input id="entity-name" name="name" placeholder="Имя" required></div>
                 <div class="form-row"><select id="entity-side" name="side"><option value="hero">hero</option><option value="enemy">enemy</option></select></div>
                 <div class="form-row"><input id="entity-file" type="file" name="entity_file" accept=".jpg,.jpeg,.png,.webp"></div>
-                <div class="form-row"><input id="entity-ac" name="armor_class" type="number" placeholder="КД"><input id="entity-hp-current" name="hp_current" type="number" placeholder="ХП текущие"></div>
+                <div class="form-row form-row-split"><input id="entity-ac" name="armor_class" type="number" placeholder="КД"><div class="inline-adjust"><button type="button" class="quick-adjust" data-target="entity-ac" data-delta="-1">-1</button><button type="button" class="quick-adjust" data-target="entity-ac" data-delta="1">+1</button></div></div>
+                <div class="form-row form-row-split"><input id="entity-hp-current" name="hp_current" type="number" placeholder="ХП текущие"><div class="inline-adjust"><button type="button" class="quick-adjust" data-target="entity-hp-current" data-delta="-5">-5</button><button type="button" class="quick-adjust" data-target="entity-hp-current" data-delta="-1">-1</button><button type="button" class="quick-adjust" data-target="entity-hp-current" data-delta="1">+1</button><button type="button" class="quick-adjust" data-target="entity-hp-current" data-delta="5">+5</button></div></div>
                 <div class="form-row"><input id="entity-hp-max" name="hp_max" type="number" placeholder="ХП максимум"><input id="entity-sort" name="sort_order" type="number" value="0" placeholder="Порядок"></div>
                 <div class="form-row"><label><input id="entity-visible" type="checkbox" name="is_visible" value="1" checked> Видимость</label></div>
                 <div class="form-row">
@@ -79,6 +80,20 @@
         <div id="selected-icon-panel" class="panel hidden">
             <h3>Выбранная иконка</h3>
             <div id="selected-icon-meta" class="selected-icon-meta">Не выбрана</div>
+            <div class="icon-quick-controls">
+                <div class="icon-quick-title">Перемещение</div>
+                <div class="move-pad">
+                    <button type="button" class="icon-step" data-dir="up">↑</button>
+                    <button type="button" class="icon-step" data-dir="left">←</button>
+                    <button type="button" class="icon-step" data-dir="down">↓</button>
+                    <button type="button" class="icon-step" data-dir="right">→</button>
+                </div>
+                <div class="icon-quick-title">Размер</div>
+                <div class="size-pad">
+                    <button type="button" class="icon-size-step" data-delta="-1">-</button>
+                    <button type="button" class="icon-size-step" data-delta="1">+</button>
+                </div>
+            </div>
             <form id="selected-icon-form">
                 <div class="form-row"><input id="selected-icon-grid-x" type="number" min="0" placeholder="grid_x"><input id="selected-icon-grid-y" type="number" min="0" placeholder="grid_y"></div>
                 <div class="form-row"><input id="selected-icon-size-cells" type="number" min="1" max="4" placeholder="size_cells"></div>

@@ -5,6 +5,7 @@
     const gridLayer = document.getElementById('viewers-grid-layer');
     const iconsLayer = document.getElementById('viewers-icons-layer');
     const dcBox = document.getElementById('dc-box');
+    const dcValue = document.getElementById('dc-value');
 
     function render(state) {
         if (state.mode === 'prep' || !state.active_map) {
@@ -22,7 +23,7 @@
 
         if (state.dc_visible && state.dc_value !== null) {
             dcBox.classList.remove('hidden');
-            dcBox.textContent = `СЛ ${state.dc_value}`;
+            dcValue.textContent = String(state.dc_value);
         } else {
             dcBox.classList.add('hidden');
         }
