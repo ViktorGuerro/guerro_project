@@ -76,6 +76,7 @@
             image.src = entity.image_path || '';
             image.alt = entity.name || '';
             name.textContent = entity.name || 'Без имени';
+            image.classList.toggle('is-unconscious', Number(entity.is_unconscious) === 1);
             ac.textContent = entity.armor_class ?? '-';
             hp.textContent = `${entity.hp_current ?? '-'}${entity.hp_max !== null ? `/${entity.hp_max}` : ''}`;
         };

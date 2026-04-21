@@ -59,6 +59,9 @@
             div.dataset.id = icon.id;
             div.dataset.side = icon.side || '';
             div.classList.add(`icon-side-${icon.side || 'unknown'}`);
+            if (Number(icon.is_unconscious) === 1) {
+                div.classList.add('icon-unconscious');
+            }
             const gridX = Number.isFinite(Number(icon.grid_x)) ? Number(icon.grid_x) : 0;
             const gridY = Number.isFinite(Number(icon.grid_y)) ? Number(icon.grid_y) : 0;
             const sizeCells = Math.max(1, Number(icon.size_cells) || 1);

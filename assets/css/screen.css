@@ -116,6 +116,14 @@
     }
 }
 
+.screen-overlay-card {
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(12, 14, 20, 0.84);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.38);
+    backdrop-filter: blur(4px);
+}
+
 .ability-overlay-layer {
     position: absolute;
     inset: 0;
@@ -168,10 +176,10 @@
     display: flex;
     gap: 16px;
     align-items: center;
-    padding: 14px;
-    border-radius: 14px;
+    padding: 16px;
+    border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.18);
-    background: rgba(16, 16, 20, 0.8);
+    background: rgba(12, 14, 20, 0.84);
     backdrop-filter: blur(4px);
 }
 .battle-overlay-portrait {
@@ -218,9 +226,9 @@
     z-index: 25;
     min-width: min(1100px, 90vw);
     max-width: 92vw;
-    border-radius: 18px;
+    border-radius: 20px;
     padding: 18px 22px;
-    background: rgba(13, 14, 18, 0.86);
+    background: rgba(12, 14, 20, 0.84);
     border: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 12px 34px rgba(0, 0, 0, 0.35);
     backdrop-filter: blur(4px);
@@ -286,7 +294,7 @@
 .dice-tile {
     width: 110px;
     height: 110px;
-    border-radius: 14px;
+    border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.22);
     background: linear-gradient(155deg, #2e313d, #161821);
     display: flex;
@@ -356,7 +364,7 @@
     border-radius: 20px;
     padding: 20px 28px;
     border: 2px solid rgba(255, 255, 255, 0.3);
-    background: rgba(8, 12, 22, 0.82);
+    background: rgba(12, 14, 20, 0.88);
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
     backdrop-filter: blur(5px);
     text-align: center;
@@ -442,4 +450,9 @@
     .roll-result-value {
         font-size: 60px;
     }
+}
+
+
+.battle-overlay-portrait img.is-unconscious {
+    filter: grayscale(1) saturate(0.25) brightness(0.82);
 }

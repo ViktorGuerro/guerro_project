@@ -25,6 +25,7 @@
         entityHpMax: document.getElementById('entity-hp-max'),
         entitySort: document.getElementById('entity-sort'),
         entityVisible: document.getElementById('entity-visible'),
+        entityUnconscious: document.getElementById('entity-unconscious'),
         entitySubmit: document.getElementById('entity-submit'),
         entityCancel: document.getElementById('entity-cancel'),
         selectedIconPanel: document.getElementById('selected-icon-panel'),
@@ -44,12 +45,22 @@
         sceneDebugToggle: document.getElementById('scene-debug-toggle'),
         sceneDebugInfo: document.getElementById('scene-debug-info'),
         debugLayer: document.getElementById('master-debug-layer'),
+        combatScenarioForm: document.getElementById('combat-scenario-form'),
+        combatAttacker: document.getElementById('combat-attacker'),
+        combatTarget: document.getElementById('combat-target'),
+        combatActionType: document.getElementById('combat-action-type'),
+        combatShowBattle: document.getElementById('combat-show-battle'),
+        combatShowDice: document.getElementById('combat-show-dice'),
+        combatShowResult: document.getElementById('combat-show-result'),
+        combatShowDamage: document.getElementById('combat-show-damage'),
+        combatHideAll: document.getElementById('combat-hide-all'),
         battleOverlayForm: document.getElementById('battle-overlay-form'),
         battleAttackerEntity: document.getElementById('battle-attacker-entity'),
         battleTargetEntity: document.getElementById('battle-target-entity'),
         battleHideButton: document.getElementById('btn-hide-battle-overlay'),
         diceOverlayForm: document.getElementById('dice-overlay-form'),
         diceEntity: document.getElementById('dice-entity'),
+        diceActionType: document.getElementById('dice-action-type'),
         diceLabel: document.getElementById('dice-label'),
         diceRollMode: document.getElementById('dice-roll-mode'),
         diceGroupsList: document.getElementById('dice-groups-list'),
@@ -411,6 +422,9 @@
             stateEls.entityId.value = '';
             stateEls.entityForm.reset();
             stateEls.entityVisible.checked = true;
+        if (stateEls.entityUnconscious) {
+            stateEls.entityUnconscious.checked = false;
+        }
             stateEls.entitySort.value = 0;
             stateEls.entitySubmit.textContent = 'Сохранить сущность';
             stateEls.entityCancel.classList.add('hidden');
@@ -634,7 +648,7 @@
     function fillEntityList(state) {
         const entities = state.entities;
         stateEls.entityList.innerHTML = entities.map(e => `<div class="list-item entity-list-item">
-            <span class="item-title">${DndCommon.escapeHtml(e.name)} (${formatSideLabel(e.side)}) • КД ${e.armor_class ?? '-'} • ХП ${e.hp_current ?? '-'}${e.hp_max !== null ? `/${e.hp_max}` : ''}</span>
+            <span class="item-title">${DndCommon.escapeHtml(e.name)} (${formatSideLabel(e.side)})${Number(e.is_unconscious) === 1 ? ' • Без сознания' : ''} • КД ${e.armor_class ?? '-'} • ХП ${e.hp_current ?? '-'}${e.hp_max !== null ? `/${e.hp_max}` : ''}</span>
             <div class="item-controls">
                 <div class="item-menu" data-type="entity" data-id="${e.id}">
                     <button type="button" class="menu-toggle" aria-label="Действия сущности">...</button>
@@ -642,6 +656,9 @@
                         <button class="edit-entity" data-id="${e.id}" type="button">Редактировать</button>
                         <button class="quick-add-icon" data-id="${e.id}" type="button">Добавить на карту</button>
                         <button class="duplicate-entity" data-id="${e.id}" type="button">Дублировать</button>
+                        <button class="toggle-unconscious" data-id="${e.id}" data-value="${Number(e.is_unconscious) === 1 ? 0 : 1}" type="button">${Number(e.is_unconscious) === 1 ? 'В сознании' : 'Без сознания'}</button>
+                        <button class="hide-entity" data-id="${e.id}" type="button">Скрыть сущность</button>
+                        <button class="remove-entity-icons" data-id="${e.id}" type="button">Убрать с карты</button>
                         <div class="quick-stats">
                             <span>ХП:</span>
                             <button class="quick-stat" data-id="${e.id}" data-hp="-5" type="button">-5</button>
@@ -672,6 +689,10 @@
         const battleOptions = ['<option value="">— Выберите —</option>', ...entities.map(e => `<option value="${e.id}">${DndCommon.escapeHtml(e.name)}</option>`)];
         stateEls.battleAttackerEntity.innerHTML = battleOptions.join('');
         stateEls.battleTargetEntity.innerHTML = battleOptions.join('');
+        if (stateEls.combatAttacker && stateEls.combatTarget) {
+            stateEls.combatAttacker.innerHTML = battleOptions.join('');
+            stateEls.combatTarget.innerHTML = battleOptions.join('');
+        }
 
         if (currentAttacker && entities.some(e => String(e.id) === currentAttacker)) {
             stateEls.battleAttackerEntity.value = currentAttacker;
@@ -1014,6 +1035,17 @@
                 await postForm('/api/duplicate_entity.php', { id: Number(target.dataset.id) });
                 closeAllActionMenus();
             }
+            if (target.classList.contains('toggle-unconscious')) {
+                await postForm('/api/save_entity.php', { id: Number(target.dataset.id), is_unconscious: Number(target.dataset.value), name: latestState?.entities.find(row => Number(row.id) === Number(target.dataset.id))?.name, side: latestState?.entities.find(row => Number(row.id) === Number(target.dataset.id))?.side, is_visible: latestState?.entities.find(row => Number(row.id) === Number(target.dataset.id))?.is_visible ? 1 : 0 });
+            }
+            if (target.classList.contains('hide-entity')) {
+                await postForm('/api/hide_entity.php', { id: Number(target.dataset.id) });
+                closeAllActionMenus();
+            }
+            if (target.classList.contains('remove-entity-icons')) {
+                await postForm('/api/remove_entity_icons.php', { entity_id: Number(target.dataset.id) });
+                closeAllActionMenus();
+            }
             if (target.classList.contains('quick-stat')) {
                 const payload = { id: Number(target.dataset.id) };
                 if (target.dataset.hp) {
@@ -1024,6 +1056,41 @@
                 }
                 await postForm('/api/update_entity_stats.php', payload);
             }
+        });
+
+
+        stateEls.combatShowBattle?.addEventListener('click', async () => {
+            const attackerId = Number(stateEls.combatAttacker?.value || 0);
+            const targetId = Number(stateEls.combatTarget?.value || 0);
+            if (!attackerId || !targetId) {
+                alert('Выберите атакующего и цель.');
+                return;
+            }
+            await postForm('/api/show_battle_overlay.php', { attacker_entity_id: attackerId, target_entity_id: targetId });
+        });
+        stateEls.combatShowDice?.addEventListener('click', async () => {
+            stateEls.battleAttackerEntity.value = stateEls.combatAttacker?.value || '';
+            stateEls.battleTargetEntity.value = stateEls.combatTarget?.value || '';
+            stateEls.diceEntity.value = stateEls.combatAttacker?.value || '';
+            stateEls.diceActionType.value = stateEls.combatActionType?.value || 'custom';
+            await stateEls.diceOverlayForm?.requestSubmit();
+        });
+        stateEls.combatShowResult?.addEventListener('click', async () => {
+            await postForm('/api/show_auto_roll_result.php', {
+                action_type: stateEls.combatActionType?.value || 'custom',
+                target_entity_id: Number(stateEls.combatTarget?.value || 0) || null,
+            });
+        });
+        stateEls.combatShowDamage?.addEventListener('click', async () => {
+            await postForm('/api/show_roll_result_overlay.php', { result_type: 'damage', title: 'Урон', subtitle: stateEls.diceLabel?.value || '', value_text: `${stateEls.diceTotal?.value || '-'} урона` });
+        });
+        stateEls.combatHideAll?.addEventListener('click', async () => {
+            await Promise.all([
+                postForm('/api/hide_battle_overlay.php', {}),
+                postForm('/api/hide_dice_overlay.php', {}),
+                postForm('/api/hide_roll_result_overlay.php', {}),
+                postForm('/api/hide_dc.php', {}),
+            ]);
         });
 
         stateEls.battleOverlayForm?.addEventListener('submit', async e => {
@@ -1071,6 +1138,30 @@
         stateEls.diceAdvantageRoll2?.addEventListener('input', onAdvantageInput);
         stateEls.diceModifier?.addEventListener('input', recalculateDiceTotal);
 
+        document.querySelectorAll('.roll-template').forEach(button => {
+            button.addEventListener('click', () => {
+                const template = button.dataset.template;
+                if (template === '1d20_adv' || template === '1d20_dis') {
+                    const value = template === '1d20_adv' ? 'advantage' : 'disadvantage';
+                    const radio = stateEls.diceRollMode?.querySelector(`input[value="${value}"]`);
+                    if (radio) { radio.checked = true; }
+                    diceRollMode = value;
+                    advantageValues = [null, null];
+                } else {
+                    const [countRaw, type] = template.split('d');
+                    const count = Number(countRaw) || 1;
+                    const radio = stateEls.diceRollMode?.querySelector('input[value="normal"]');
+                    if (radio) { radio.checked = true; }
+                    diceRollMode = 'normal';
+                    diceGroups = [{ dice_type: `d${type}`, dice_count: count, dice_values: Array.from({ length: count }, () => null) }];
+                }
+                updateDiceModeUI();
+                renderDiceGroups();
+                recalculateDiceTotal();
+            });
+        });
+
+
         stateEls.diceOverlayForm?.addEventListener('submit', async e => {
             pauseUpdates(2200);
             e.preventDefault();
@@ -1090,6 +1181,7 @@
 
             const modifier = Number(stateEls.diceModifier.value || 0);
             const payload = {
+                action_type: (stateEls.diceActionType?.value || 'custom').trim(),
                 label: (stateEls.diceLabel.value || '').trim(),
                 modifier: Number.isInteger(modifier) ? modifier : 0,
                 roll_mode: rollMode,

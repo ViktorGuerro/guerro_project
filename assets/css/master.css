@@ -463,3 +463,14 @@
     color: #ff9b9b;
     border-color: #8f4040;
 }
+
+
+.roll-templates {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+}
+.roll-templates button {
+    font-size: 12px;
+    padding: 5px 6px;
+}

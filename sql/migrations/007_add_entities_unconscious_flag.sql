@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
     applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
-SET @migration_name := '004_extend_dice_overlay_to_groups.sql';
+SET @migration_name := '007_add_entities_unconscious_flag.sql';
 
 SET @already_applied := (
     SELECT COUNT(*)
@@ -12,19 +12,30 @@ SET @already_applied := (
     WHERE migration_name = CONVERT(@migration_name USING utf8mb4) COLLATE utf8mb4_general_ci
 );
 
-SET @add_dice_groups_json := IF(
-    @already_applied = 0 AND NOT EXISTS (
-        SELECT 1
-        FROM information_schema.columns
-        WHERE table_schema = DATABASE()
-          AND table_name = 'dice_overlay_state'
-          AND column_name = 'dice_groups_json'
-    ),
-    'ALTER TABLE dice_overlay_state ADD COLUMN dice_groups_json TEXT DEFAULT NULL AFTER label',
+SET @table_exists := (
+    SELECT COUNT(*)
+    FROM information_schema.tables
+    WHERE table_schema = DATABASE()
+      AND table_name = 'entities'
+);
+
+SET @column_exists := (
+    SELECT COUNT(*)
+    FROM information_schema.columns
+    WHERE table_schema = DATABASE()
+      AND table_name = 'entities'
+      AND column_name = 'is_unconscious'
+);
+
+SET @add_column := IF(
+    @already_applied = 0
+    AND @table_exists = 1
+    AND @column_exists = 0,
+    'ALTER TABLE entities ADD COLUMN is_unconscious TINYINT(1) NOT NULL DEFAULT 0 AFTER is_visible',
     'SELECT 1'
 );
 
-PREPARE stmt FROM @add_dice_groups_json;
+PREPARE stmt FROM @add_column;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
 

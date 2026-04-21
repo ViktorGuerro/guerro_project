@@ -44,14 +44,10 @@ FROM schema_migrations
 ORDER BY id;
 ```
 
-3. Выполните миграции вручную по одной, строго по порядку:
+3. Выполните миграции через штатный раннер:
 
 ```bash
-mysql -u guerro_user -p guerro_db < sql/migrations/000_create_schema_migrations.sql
-mysql -u guerro_user -p guerro_db < sql/migrations/001_split_battle_overlay_to_attacker_and_target.sql
-mysql -u guerro_user -p guerro_db < sql/migrations/002_add_dice_overlay_state.sql
-mysql -u guerro_user -p guerro_db < sql/migrations/006_add_roll_result_overlay_state.sql
-# ... и далее по порядку
+php bin/migrate.php
 ```
 
 4. После деплоя обязательно применяйте все новые миграции перед запуском приложения в production.
@@ -107,3 +103,10 @@ chown -R www-data:www-data uploads
 - `POST /api/delete_icon.php`
 - `POST /api/show_roll_result_overlay.php`
 - `POST /api/hide_roll_result_overlay.php`
+
+
+## Кодировка и collation
+
+- Ожидаемая кодировка: `utf8mb4`.
+- Ожидаемое сравнение строк: `utf8mb4_general_ci`.
+- `sql/init.sql` и миграции приведены к единому стилю сравнения во избежание `Illegal mix of collations`.

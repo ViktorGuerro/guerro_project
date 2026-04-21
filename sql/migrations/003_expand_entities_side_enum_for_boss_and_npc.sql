@@ -1,15 +1,15 @@
 CREATE TABLE IF NOT EXISTS schema_migrations (
-                                                 id INT AUTO_INCREMENT PRIMARY KEY,
-                                                 migration_name VARCHAR(255) NOT NULL UNIQUE,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    migration_name VARCHAR(255) NOT NULL UNIQUE,
     applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
 SET @migration_name := '003_expand_entities_side_enum_for_boss_and_npc.sql';
 
 SET @already_applied := (
     SELECT COUNT(*)
     FROM schema_migrations
-    WHERE migration_name = @migration_name
+    WHERE migration_name = CONVERT(@migration_name USING utf8mb4) COLLATE utf8mb4_general_ci
 );
 
 SET @table_exists := (
@@ -57,7 +57,7 @@ DEALLOCATE PREPARE stmt;
 
 SET @insert_migration := IF(
     @already_applied = 0,
-    CONCAT('INSERT INTO schema_migrations (migration_name) VALUES (''', @migration_name, ''')'),
+    CONCAT('INSERT INTO schema_migrations (migration_name) VALUES (''', REPLACE(@migration_name, '''', ''''''), ''')'),
     'SELECT 1'
 );
 

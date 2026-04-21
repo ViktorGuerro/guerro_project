@@ -68,6 +68,19 @@
             </form>
         </div>
 
+
+        <div class="panel">
+            <h3>Боевой сценарий</h3>
+            <form id="combat-scenario-form">
+                <div class="form-row"><div class="form-field"><label for="combat-attacker" class="field-label">Кто атакует</label><select id="combat-attacker"></select></div></div>
+                <div class="form-row"><div class="form-field"><label for="combat-target" class="field-label">Кого атакуют</label><select id="combat-target"></select></div></div>
+                <div class="form-row"><div class="form-field"><label for="combat-action-type" class="field-label">Тип действия</label><select id="combat-action-type"><option value="attack">Атака</option><option value="save">Спасбросок</option><option value="check">Проверка</option><option value="damage">Урон</option><option value="custom">Пользовательский</option></select></div></div>
+                <div class="form-row"><button id="combat-show-battle" type="button">Показать бой</button><button id="combat-show-dice" type="button" class="secondary">Показать бросок</button></div>
+                <div class="form-row"><button id="combat-show-result" type="button">Показать результат</button><button id="combat-show-damage" type="button" class="secondary">Показать урон</button></div>
+                <div class="form-row"><button id="combat-hide-all" type="button" class="danger">Скрыть всё</button></div>
+            </form>
+        </div>
+
         <div class="panel">
             <h3>Боевой overlay</h3>
             <form id="battle-overlay-form">
@@ -102,8 +115,33 @@
                 </div>
                 <div class="form-row">
                     <div class="form-field">
+                        <label for="dice-action-type" class="field-label">Тип действия</label>
+                        <select id="dice-action-type">
+                            <option value="attack">Атака</option>
+                            <option value="save">Спасбросок</option>
+                            <option value="check">Проверка</option>
+                            <option value="damage">Урон</option>
+                            <option value="custom">Пользовательский</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
                         <label for="dice-label" class="field-label">Подпись броска</label>
                         <input id="dice-label" type="text" placeholder="Атака / Урон / Спасбросок">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="roll-templates" id="roll-templates">
+                        <button type="button" class="secondary roll-template" data-template="1d20">1d20</button>
+                        <button type="button" class="secondary roll-template" data-template="1d20_adv">1d20 + преимущество</button>
+                        <button type="button" class="secondary roll-template" data-template="1d20_dis">1d20 + помеха</button>
+                        <button type="button" class="secondary roll-template" data-template="1d4">1d4</button>
+                        <button type="button" class="secondary roll-template" data-template="1d6">1d6</button>
+                        <button type="button" class="secondary roll-template" data-template="1d8">1d8</button>
+                        <button type="button" class="secondary roll-template" data-template="1d10">1d10</button>
+                        <button type="button" class="secondary roll-template" data-template="1d12">1d12</button>
+                        <button type="button" class="secondary roll-template" data-template="2d6">2d6</button>
                     </div>
                 </div>
 
@@ -249,6 +287,7 @@
                     </div>
                 </div>
                 <div class="form-row"><label><input id="entity-visible" type="checkbox" name="is_visible" value="1" checked> Видимость</label></div>
+                <div class="form-row"><label><input id="entity-unconscious" type="checkbox" name="is_unconscious" value="1"> Без сознания</label></div>
                 <div class="form-row">
                     <button id="entity-submit" type="submit">Сохранить сущность</button>
                     <button id="entity-cancel" class="secondary hidden" type="button">Отмена редактирования</button>

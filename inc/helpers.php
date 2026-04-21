@@ -56,3 +56,43 @@ function api_ok(array $data = []): void
 {
     json_response(['ok' => true, 'data' => $data]);
 }
+
+
+function build_auto_roll_result(string $actionType, ?int $selectedD20, ?int $totalValue, ?int $targetArmorClass, ?int $dcValue): ?array
+{
+    $normalizedActionType = in_array($actionType, ['attack', 'save', 'check', 'damage', 'custom'], true) ? $actionType : 'custom';
+
+    if ($selectedD20 === null && $totalValue === null) {
+        return null;
+    }
+
+    if ($normalizedActionType === 'attack') {
+        if ($selectedD20 === 20) {
+            return ['result_type' => 'crit_success', 'title' => 'Критический успех', 'subtitle' => 'Натуральная 20', 'value_text' => $totalValue !== null ? (string) $totalValue : null];
+        }
+        if ($selectedD20 === 1) {
+            return ['result_type' => 'crit_fail', 'title' => 'Критический провал', 'subtitle' => 'Натуральная 1', 'value_text' => $totalValue !== null ? (string) $totalValue : null];
+        }
+        if ($targetArmorClass !== null && $totalValue !== null) {
+            $hit = $totalValue >= $targetArmorClass;
+            return [
+                'result_type' => $hit ? 'hit' : 'miss',
+                'title' => $hit ? 'Попадание' : 'Промах',
+                'subtitle' => 'КД цели: ' . $targetArmorClass,
+                'value_text' => (string) $totalValue,
+            ];
+        }
+    }
+
+    if ($normalizedActionType === 'save' && $dcValue !== null && $totalValue !== null) {
+        $success = $totalValue >= $dcValue;
+        return [
+            'result_type' => $success ? 'save_success' : 'save_fail',
+            'title' => $success ? 'Спасбросок пройден' : 'Спасбросок провален',
+            'subtitle' => 'СЛ: ' . $dcValue,
+            'value_text' => (string) $totalValue,
+        ];
+    }
+
+    return null;
+}

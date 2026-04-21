@@ -14,6 +14,7 @@ $hpCurrent = post_int('hp_current');
 $hpMax = post_int('hp_max');
 $sortOrder = post_int('sort_order', 0) ?? 0;
 $isVisible = post_int('is_visible', 1) ?? 1;
+$isUnconscious = post_int('is_unconscious', 0) ?? 0;
 
 if ($name === null) {
     api_error('name_required');
@@ -59,7 +60,7 @@ if ($id !== null) {
     $stmt = $pdo->prepare(
         'UPDATE entities
          SET name = :name, side = :side, image_path = :image_path, armor_class = :armor_class,
-             hp_current = :hp_current, hp_max = :hp_max, sort_order = :sort_order, is_visible = :is_visible
+             hp_current = :hp_current, hp_max = :hp_max, sort_order = :sort_order, is_visible = :is_visible, is_unconscious = :is_unconscious
          WHERE id = :id'
     );
 
@@ -73,11 +74,12 @@ if ($id !== null) {
         'hp_max' => $hpMax,
         'sort_order' => $sortOrder,
         'is_visible' => $isVisible ? 1 : 0,
+        'is_unconscious' => $isUnconscious ? 1 : 0,
     ]);
 } else {
     $stmt = $pdo->prepare(
-        'INSERT INTO entities (name, side, image_path, armor_class, hp_current, hp_max, sort_order, is_visible)
-         VALUES (:name, :side, :image_path, :armor_class, :hp_current, :hp_max, :sort_order, :is_visible)'
+        'INSERT INTO entities (name, side, image_path, armor_class, hp_current, hp_max, sort_order, is_visible, is_unconscious)
+         VALUES (:name, :side, :image_path, :armor_class, :hp_current, :hp_max, :sort_order, :is_visible, :is_unconscious)'
     );
     $stmt->execute([
         'name' => $name,
@@ -88,6 +90,7 @@ if ($id !== null) {
         'hp_max' => $hpMax,
         'sort_order' => $sortOrder,
         'is_visible' => $isVisible ? 1 : 0,
+        'is_unconscious' => $isUnconscious ? 1 : 0,
     ]);
     $id = (int) $pdo->lastInsertId();
 }

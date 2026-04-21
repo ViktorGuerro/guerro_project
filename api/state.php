@@ -32,13 +32,15 @@ $battleOverlayStmt = $pdo->query(
         attacker.armor_class AS attacker_armor_class,
         attacker.hp_current AS attacker_hp_current,
         attacker.hp_max AS attacker_hp_max,
+        attacker.is_unconscious AS attacker_is_unconscious,
         target.id AS target_id,
         target.name AS target_name,
         target.side AS target_side,
         target.image_path AS target_image_path,
         target.armor_class AS target_armor_class,
         target.hp_current AS target_hp_current,
-        target.hp_max AS target_hp_max
+        target.hp_max AS target_hp_max,
+        target.is_unconscious AS target_is_unconscious
      FROM battle_overlay_state bos
      LEFT JOIN entities attacker ON attacker.id = bos.attacker_entity_id
      LEFT JOIN entities target ON target.id = bos.target_entity_id
@@ -220,10 +222,10 @@ $rollResultOverlayVisible = $rollResultOverlay['visible_until'] !== null
     && $rollResultOverlay['result_type'] !== null
     && $rollResultOverlay['title'] !== null;
 
-$entities = $pdo->query('SELECT id, name, side, image_path, armor_class, hp_current, hp_max, sort_order, is_visible FROM entities ORDER BY sort_order, id')->fetchAll();
+$entities = $pdo->query('SELECT id, name, side, image_path, armor_class, hp_current, hp_max, sort_order, is_visible, is_unconscious FROM entities ORDER BY sort_order, id')->fetchAll();
 
 $icons = $pdo->query(
-    'SELECT mi.id, mi.entity_id, mi.grid_x, mi.grid_y, mi.size_cells, mi.is_visible, e.name, e.image_path, e.side
+    'SELECT mi.id, mi.entity_id, mi.grid_x, mi.grid_y, mi.size_cells, mi.is_visible, e.name, e.image_path, e.side, e.is_unconscious
      FROM map_icons mi
      INNER JOIN entities e ON e.id = mi.entity_id
      ORDER BY mi.id'
@@ -244,6 +246,7 @@ api_ok([
         $row['id'] = (int) $row['id'];
         $row['sort_order'] = (int) $row['sort_order'];
         $row['is_visible'] = (int) $row['is_visible'];
+        $row['is_unconscious'] = isset($row['is_unconscious']) ? (int) $row['is_unconscious'] : 0;
         $row['armor_class'] = $row['armor_class'] !== null ? (int) $row['armor_class'] : null;
         $row['hp_current'] = $row['hp_current'] !== null ? (int) $row['hp_current'] : null;
         $row['hp_max'] = $row['hp_max'] !== null ? (int) $row['hp_max'] : null;
@@ -256,6 +259,7 @@ api_ok([
         $row['grid_y'] = (int) $row['grid_y'];
         $row['size_cells'] = (int) $row['size_cells'];
         $row['is_visible'] = (int) $row['is_visible'];
+        $row['is_unconscious'] = isset($row['is_unconscious']) ? (int) $row['is_unconscious'] : 0;
         return $row;
     }, $icons),
 
@@ -269,6 +273,7 @@ api_ok([
             'armor_class' => $battleOverlay['attacker_armor_class'] !== null ? (int) $battleOverlay['attacker_armor_class'] : null,
             'hp_current' => $battleOverlay['attacker_hp_current'] !== null ? (int) $battleOverlay['attacker_hp_current'] : null,
             'hp_max' => $battleOverlay['attacker_hp_max'] !== null ? (int) $battleOverlay['attacker_hp_max'] : null,
+            'is_unconscious' => $battleOverlay['attacker_is_unconscious'] !== null ? (int) $battleOverlay['attacker_is_unconscious'] : 0,
         ] : null,
         'target' => $battleOverlayVisible ? [
             'id' => (int) $battleOverlay['target_id'],
@@ -278,6 +283,7 @@ api_ok([
             'armor_class' => $battleOverlay['target_armor_class'] !== null ? (int) $battleOverlay['target_armor_class'] : null,
             'hp_current' => $battleOverlay['target_hp_current'] !== null ? (int) $battleOverlay['target_hp_current'] : null,
             'hp_max' => $battleOverlay['target_hp_max'] !== null ? (int) $battleOverlay['target_hp_max'] : null,
+            'is_unconscious' => $battleOverlay['target_is_unconscious'] !== null ? (int) $battleOverlay['target_is_unconscious'] : 0,
         ] : null,
     ],
 

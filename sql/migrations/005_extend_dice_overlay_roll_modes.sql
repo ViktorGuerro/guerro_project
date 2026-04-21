@@ -1,8 +1,8 @@
 CREATE TABLE IF NOT EXISTS schema_migrations (
-                                                 id INT AUTO_INCREMENT PRIMARY KEY,
-                                                 migration_name VARCHAR(255) NOT NULL UNIQUE,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    migration_name VARCHAR(255) NOT NULL UNIQUE,
     applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-    );
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
 SET @migration_name := '005_extend_dice_overlay_roll_modes.sql';
 
@@ -59,11 +59,7 @@ DEALLOCATE PREPARE stmt;
 
 SET @insert_migration := IF(
     @already_applied = 0,
-    CONCAT(
-        'INSERT INTO schema_migrations (migration_name) VALUES (''',
-        REPLACE(@migration_name, '''', ''''''),
-        ''')'
-    ),
+    CONCAT('INSERT INTO schema_migrations (migration_name) VALUES (''', REPLACE(@migration_name, '''', ''''''), ''')'),
     'SELECT 1'
 );
 PREPARE stmt FROM @insert_migration;

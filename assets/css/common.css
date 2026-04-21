@@ -140,3 +140,9 @@ button.danger { background: var(--danger); border-color: var(--danger); }
     color: #ddd;
     background: #000;
 }
+
+
+.icon.icon-unconscious {
+    filter: grayscale(1) saturate(0.25) brightness(0.82);
+    opacity: 0.85;
+}
