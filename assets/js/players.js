@@ -16,7 +16,7 @@
         stage.classList.remove('hidden');
         mapImage.src = state.active_map.file_path;
         DndCommon.renderGrid(gridLayer, state.grid_cell_size, state.grid_enabled);
-        DndCommon.renderIcons(iconsLayer, state.icons, state.grid_cell_size);
+        DndCommon.renderIcons(iconsLayer, state.icons, state.grid_cell_size, {});
     }
 
     DndCommon.startPolling(render, 700);

@@ -51,13 +51,17 @@
         <div class="panel">
             <h3>Герои и враги</h3>
             <form id="entity-form" enctype="multipart/form-data">
-                <div class="form-row"><input name="name" placeholder="Имя" required></div>
-                <div class="form-row"><select name="side"><option value="hero">hero</option><option value="enemy">enemy</option></select></div>
-                <div class="form-row"><input type="file" name="entity_file" accept=".jpg,.jpeg,.png,.webp"></div>
-                <div class="form-row"><input name="armor_class" type="number" placeholder="КД"><input name="hp_current" type="number" placeholder="ХП текущие"></div>
-                <div class="form-row"><input name="hp_max" type="number" placeholder="ХП максимум"><input name="sort_order" type="number" value="0" placeholder="Порядок"></div>
-                <div class="form-row"><label><input type="checkbox" name="is_visible" value="1" checked> Видимость</label></div>
-                <div class="form-row"><button type="submit">Сохранить сущность</button></div>
+                <input type="hidden" id="entity-id" name="id" value="">
+                <div class="form-row"><input id="entity-name" name="name" placeholder="Имя" required></div>
+                <div class="form-row"><select id="entity-side" name="side"><option value="hero">hero</option><option value="enemy">enemy</option></select></div>
+                <div class="form-row"><input id="entity-file" type="file" name="entity_file" accept=".jpg,.jpeg,.png,.webp"></div>
+                <div class="form-row"><input id="entity-ac" name="armor_class" type="number" placeholder="КД"><input id="entity-hp-current" name="hp_current" type="number" placeholder="ХП текущие"></div>
+                <div class="form-row"><input id="entity-hp-max" name="hp_max" type="number" placeholder="ХП максимум"><input id="entity-sort" name="sort_order" type="number" value="0" placeholder="Порядок"></div>
+                <div class="form-row"><label><input id="entity-visible" type="checkbox" name="is_visible" value="1" checked> Видимость</label></div>
+                <div class="form-row">
+                    <button id="entity-submit" type="submit">Сохранить сущность</button>
+                    <button id="entity-cancel" class="secondary hidden" type="button">Отмена редактирования</button>
+                </div>
             </form>
             <div id="entity-list"></div>
         </div>
@@ -66,7 +70,22 @@
             <h3>Добавление иконки</h3>
             <form id="add-icon-form">
                 <div class="form-row"><select id="add-icon-entity"></select></div>
+                <div class="form-row"><input id="add-icon-grid-x" type="number" min="0" value="0" placeholder="grid_x"><input id="add-icon-grid-y" type="number" min="0" value="0" placeholder="grid_y"></div>
+                <div class="form-row"><input id="add-icon-size-cells" type="number" min="1" max="4" value="1" placeholder="size_cells"></div>
                 <div class="form-row"><button type="submit">Добавить на карту</button></div>
+            </form>
+        </div>
+
+        <div id="selected-icon-panel" class="panel hidden">
+            <h3>Выбранная иконка</h3>
+            <div id="selected-icon-meta" class="selected-icon-meta">Не выбрана</div>
+            <form id="selected-icon-form">
+                <div class="form-row"><input id="selected-icon-grid-x" type="number" min="0" placeholder="grid_x"><input id="selected-icon-grid-y" type="number" min="0" placeholder="grid_y"></div>
+                <div class="form-row"><input id="selected-icon-size-cells" type="number" min="1" max="4" placeholder="size_cells"></div>
+                <div class="form-row">
+                    <button type="submit">Сохранить</button>
+                    <button id="selected-icon-delete" type="button" class="danger">Удалить иконку</button>
+                </div>
             </form>
         </div>
 

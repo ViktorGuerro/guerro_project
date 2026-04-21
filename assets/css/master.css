@@ -15,5 +15,19 @@
     border-bottom: 1px solid #383838;
     padding: 6px 0;
 }
+.row-actions {
+    display: flex;
+    gap: 6px;
+}
 #notes { width: 100%; min-height: 120px; }
 #master-icons-layer { pointer-events: auto; }
+#selected-icon-meta {
+    font-size: 14px;
+    color: #d2d2d2;
+    margin-bottom: 8px;
+}
+.icon.selected {
+    border-color: #ffe45a;
+    box-shadow: 0 0 0 2px rgba(255, 228, 90, 0.45), 0 0 14px rgba(255, 228, 90, 0.9);
+    z-index: 4;
+}

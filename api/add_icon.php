@@ -13,7 +13,10 @@ $sizeCells = post_int('size_cells', 1) ?? 1;
 if ($entityId === null) {
     api_error('entity_id_required');
 }
-if ($sizeCells < 1 || $sizeCells > 10) {
+if ($gridX < 0 || $gridY < 0) {
+    api_error('invalid_grid_position');
+}
+if ($sizeCells < 1 || $sizeCells > 4) {
     api_error('invalid_size_cells');
 }
 
