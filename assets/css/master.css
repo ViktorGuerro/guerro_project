@@ -8,12 +8,14 @@
 .master-controls {
     overflow: hidden;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 300px));
     gap: 10px;
     align-content: start;
     max-height: calc(100vh - 24px);
 }
 .master-controls .panel {
+    width: 300px;
+    max-width: 100%;
     margin-bottom: 0;
     padding: 10px;
 }
@@ -23,6 +25,15 @@
 }
 .master-controls .form-row {
     margin-bottom: 6px;
+}
+.master-controls .form-row > * {
+    min-width: 0;
+}
+.master-controls input,
+.master-controls select,
+.master-controls button,
+.master-controls textarea {
+    width: 100%;
 }
 .master-controls input,
 .master-controls select,
