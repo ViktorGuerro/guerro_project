@@ -66,8 +66,13 @@
             <div id="dice-overlay-actor" class="dice-overlay-actor"></div>
             <div id="dice-overlay-label" class="dice-overlay-label"></div>
         </div>
+        <div id="dice-overlay-mode-badge" class="dice-overlay-mode-badge hidden"></div>
         <div id="dice-overlay-dice-list" class="dice-overlay-dice-list"></div>
-        <div id="dice-overlay-summary" class="dice-overlay-summary"></div>
+        <div class="dice-overlay-summary">
+            <div id="dice-overlay-modifier" class="dice-overlay-modifier"></div>
+            <div id="dice-overlay-total" class="dice-overlay-total"></div>
+            <div id="dice-overlay-critical" class="dice-overlay-critical hidden"></div>
+        </div>
     </div>
 
     <div id="roll-result-overlay" class="roll-result-overlay hidden">

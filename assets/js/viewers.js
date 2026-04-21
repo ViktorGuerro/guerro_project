@@ -22,14 +22,18 @@
     const diceOverlay = document.getElementById('dice-overlay');
     const diceOverlayActor = document.getElementById('dice-overlay-actor');
     const diceOverlayLabel = document.getElementById('dice-overlay-label');
+    const diceOverlayModeBadge = document.getElementById('dice-overlay-mode-badge');
     const diceOverlayDiceList = document.getElementById('dice-overlay-dice-list');
-    const diceOverlaySummary = document.getElementById('dice-overlay-summary');
+    const diceOverlayModifier = document.getElementById('dice-overlay-modifier');
+    const diceOverlayTotal = document.getElementById('dice-overlay-total');
+    const diceOverlayCritical = document.getElementById('dice-overlay-critical');
     const rollResultOverlay = document.getElementById('roll-result-overlay');
     const rollResultTitle = document.getElementById('roll-result-title');
     const rollResultSubtitle = document.getElementById('roll-result-subtitle');
     const rollResultValue = document.getElementById('roll-result-value');
 
     let lastDiceSignature = null;
+    let diceAnimationTimers = [];
 
     function renderAbilityCircle(state) {
         abilityLayer.innerHTML = '';
@@ -87,11 +91,109 @@
         battleOverlay.classList.toggle('hidden', !Boolean(overlayData.attacker || overlayData.target));
     }
 
+    function clearDiceAnimationTimers() {
+        diceAnimationTimers.forEach(timer => clearTimeout(timer));
+        diceAnimationTimers = [];
+    }
+
+    function createDiceTile({ diceType, value, modeClass = '', isSelected = false, isCritSuccess = false, isCritFail = false }) {
+        const tile = document.createElement('div');
+        tile.className = `dice-tile rolling ${modeClass}`.trim();
+        if (isSelected) {
+            tile.classList.add('selected');
+        } else if (modeClass) {
+            tile.classList.add('unselected');
+        }
+        if (isCritSuccess) {
+            tile.classList.add('crit-success');
+        }
+        if (isCritFail) {
+            tile.classList.add('crit-fail');
+        }
+
+        const inner = document.createElement('div');
+        inner.className = 'dice-tile-inner';
+        const type = document.createElement('div');
+        type.className = 'dice-type';
+        type.textContent = diceType;
+        const valueEl = document.createElement('div');
+        valueEl.className = 'dice-value';
+        valueEl.textContent = '?';
+        inner.appendChild(type);
+        inner.appendChild(valueEl);
+        tile.appendChild(inner);
+
+        return { tile, valueEl, finalValue: value };
+    }
+
+    function buildDiceVisuals(overlay) {
+        const rollMode = overlay.roll_mode || 'normal';
+        const visuals = [];
+
+        if (rollMode === 'advantage' || rollMode === 'disadvantage') {
+            const selectedRoll = Number(overlay.selected_roll);
+            const values = Array.isArray(overlay.advantage_values) ? overlay.advantage_values : [];
+            values.forEach(value => {
+                const numericValue = Number(value);
+                const isSelected = Number.isFinite(numericValue) && numericValue === selectedRoll;
+                visuals.push({
+                    diceType: 'd20',
+                    value: Number.isFinite(numericValue) ? numericValue : '-',
+                    modeClass: rollMode === 'advantage' ? 'mode-advantage' : 'mode-disadvantage',
+                    isSelected,
+                    isCritSuccess: isSelected && selectedRoll === 20,
+                    isCritFail: isSelected && selectedRoll === 1,
+                });
+            });
+            return visuals;
+        }
+
+        const groups = Array.isArray(overlay.groups) ? overlay.groups : [];
+        groups.forEach(group => {
+            const diceType = group.dice_type || 'd6';
+            const values = Array.isArray(group.dice_values) ? group.dice_values : [];
+            values.forEach(value => {
+                const numericValue = Number(value);
+                visuals.push({
+                    diceType,
+                    value: Number.isFinite(numericValue) ? numericValue : '-',
+                    isCritSuccess: diceType === 'd20' && numericValue === 20,
+                    isCritFail: diceType === 'd20' && numericValue === 1,
+                });
+            });
+        });
+        return visuals;
+    }
+
+    function runDiceAnimation(tiles) {
+        clearDiceAnimationTimers();
+        tiles.forEach((tileData, index) => {
+            tileData.tile.style.animationDelay = `${index * 85}ms`;
+            const rollingSwapTimer = setTimeout(() => {
+                if (!document.body.contains(tileData.valueEl)) {
+                    return;
+                }
+                const max = Number(String(tileData.tile.querySelector('.dice-type')?.textContent || '').replace('d', '')) || 20;
+                tileData.valueEl.textContent = String(Math.max(1, Math.min(max, ((index + 3) * 7) % max || max)));
+            }, 220 + index * 35);
+            const settleTimer = setTimeout(() => {
+                if (!document.body.contains(tileData.valueEl)) {
+                    return;
+                }
+                tileData.valueEl.textContent = String(tileData.finalValue);
+                tileData.tile.classList.remove('rolling');
+                tileData.tile.classList.add('settled');
+            }, 900 + index * 90);
+            diceAnimationTimers.push(rollingSwapTimer, settleTimer);
+        });
+    }
+
     function renderDiceOverlay(state) {
         const overlay = state.dice_overlay;
         if (!overlay?.active) {
             diceOverlay.classList.add('hidden');
             diceOverlayDiceList.innerHTML = '';
+            clearDiceAnimationTimers();
             lastDiceSignature = null;
             return;
         }
@@ -115,121 +217,37 @@
         diceOverlayActor.textContent = overlay.entity?.name || 'Без сущности';
         diceOverlayLabel.textContent = overlay.label || 'Бросок';
 
-        const groupsSummary = isSpecialMode
-            ? `${rollMode === 'advantage' ? 'Преимущество' : 'Помеха'} • d20: ${(advantageValues || []).join(' / ')}`
-            : groups.map(group => `${group.dice_count}${group.dice_type}: ${(group.dice_values || []).join(' + ')}`).join(' • ');
-        const modifierLabel = overlay.modifier ? ` ${overlay.modifier > 0 ? '+' : '-'} ${Math.abs(overlay.modifier)}` : '';
-        const criticalLabel = overlay.critical_state === 'success'
-            ? ' • Критический успех'
-            : overlay.critical_state === 'fail'
-                ? ' • Критический провал'
-                : '';
+        const modifier = Number(overlay.modifier || 0);
+        diceOverlayModifier.textContent = `Модификатор: ${modifier >= 0 ? '+' : '−'}${Math.abs(modifier)}`;
+        diceOverlayTotal.textContent = `Итог: ${overlay.total_value ?? '-'}`;
+        diceOverlayTotal.classList.toggle('crit-success', overlay.critical_state === 'success');
+        diceOverlayTotal.classList.toggle('crit-fail', overlay.critical_state === 'fail');
 
-        diceOverlaySummary.textContent = `${groupsSummary}${modifierLabel ? ` ${modifierLabel}` : ''} • Σ ${overlay.total_value ?? '-'}${criticalLabel}`;
-        diceOverlaySummary.classList.toggle('crit-success', overlay.critical_state === 'success');
-        diceOverlaySummary.classList.toggle('crit-fail', overlay.critical_state === 'fail');
+        if (isSpecialMode) {
+            diceOverlayModeBadge.textContent = rollMode === 'advantage' ? 'Преимущество' : 'Помеха';
+            diceOverlayModeBadge.className = `dice-overlay-mode-badge ${rollMode === 'advantage' ? 'mode-advantage' : 'mode-disadvantage'}`;
+        } else {
+            diceOverlayModeBadge.textContent = '';
+            diceOverlayModeBadge.className = 'dice-overlay-mode-badge hidden';
+        }
+
+        if (overlay.critical_state === 'success') {
+            diceOverlayCritical.textContent = 'Критический успех';
+            diceOverlayCritical.className = 'dice-overlay-critical crit-success';
+        } else if (overlay.critical_state === 'fail') {
+            diceOverlayCritical.textContent = 'Критический провал';
+            diceOverlayCritical.className = 'dice-overlay-critical crit-fail';
+        } else {
+            diceOverlayCritical.textContent = '';
+            diceOverlayCritical.className = 'dice-overlay-critical hidden';
+        }
 
         if (signature !== lastDiceSignature) {
             diceOverlayDiceList.innerHTML = '';
-            let tileOffset = 0;
-
-            if (isSpecialMode) {
-                const modeBadge = document.createElement('div');
-                modeBadge.className = 'dice-roll-mode-badge';
-                modeBadge.textContent = rollMode === 'advantage' ? 'Преимущество' : 'Помеха';
-                diceOverlayDiceList.appendChild(modeBadge);
-
-                const specialWrap = document.createElement('div');
-                specialWrap.className = 'dice-special-tiles';
-                const selectedRoll = Number(overlay.selected_roll);
-                advantageValues.forEach((value, index) => {
-                    const tile = document.createElement('div');
-                    const isSelected = Number(value) === selectedRoll;
-                    tile.className = `dice-tile rolling ${isSelected ? 'selected' : 'unselected'}`;
-                    tile.style.animationDelay = `${index * 100}ms`;
-                    if (selectedRoll === 20 && isSelected) {
-                        tile.classList.add('crit-success');
-                    }
-                    if (selectedRoll === 1 && isSelected) {
-                        tile.classList.add('crit-fail');
-                    }
-
-                    const type = document.createElement('div');
-                    type.className = 'dice-type';
-                    type.textContent = 'd20';
-                    const val = document.createElement('div');
-                    val.className = 'dice-value';
-                    val.textContent = '?';
-                    const mark = document.createElement('div');
-                    mark.className = 'dice-picked-mark';
-                    mark.textContent = isSelected ? 'В расчёт' : 'Не выбран';
-                    tile.appendChild(type);
-                    tile.appendChild(val);
-                    tile.appendChild(mark);
-                    specialWrap.appendChild(tile);
-
-                    setTimeout(() => {
-                        val.textContent = String(value);
-                        tile.classList.remove('rolling');
-                    }, 600 + index * 120);
-                });
-                diceOverlayDiceList.appendChild(specialWrap);
-            } else {
-                groups.forEach((group, groupIndex) => {
-                const groupWrap = document.createElement('div');
-                groupWrap.className = 'dice-group-view';
-
-                const groupTitle = document.createElement('div');
-                groupTitle.className = 'dice-group-title';
-                groupTitle.textContent = `${group.dice_count}${group.dice_type}`;
-                groupWrap.appendChild(groupTitle);
-
-                const groupTiles = document.createElement('div');
-                groupTiles.className = 'dice-group-tiles';
-
-                (group.dice_values || []).forEach((value, index) => {
-                    const tile = document.createElement('div');
-                    tile.className = 'dice-tile rolling';
-                    tile.style.animationDelay = `${tileOffset * 70}ms`;
-
-                    const isCritSuccess = group.dice_type === 'd20' && Number(value) === 20;
-                    const isCritFail = group.dice_type === 'd20' && Number(value) === 1;
-                    if (isCritSuccess) {
-                        tile.classList.add('crit-success');
-                    }
-                    if (isCritFail) {
-                        tile.classList.add('crit-fail');
-                    }
-
-                    const type = document.createElement('div');
-                    type.className = 'dice-type';
-                    type.textContent = group.dice_type || '';
-                    const val = document.createElement('div');
-                    val.className = 'dice-value';
-                    val.textContent = '?';
-                    tile.appendChild(type);
-                    tile.appendChild(val);
-                    groupTiles.appendChild(tile);
-
-                    setTimeout(() => {
-                        val.textContent = String(value);
-                        tile.classList.remove('rolling');
-                    }, 600 + tileOffset * 100);
-
-                    tileOffset += 1;
-                });
-
-                groupWrap.appendChild(groupTiles);
-                diceOverlayDiceList.appendChild(groupWrap);
-
-                if (groupIndex < groups.length - 1) {
-                    const separator = document.createElement('div');
-                    separator.className = 'dice-group-separator';
-                    separator.textContent = '+';
-                    diceOverlayDiceList.appendChild(separator);
-                }
-                });
-            }
+            const visuals = buildDiceVisuals(overlay);
+            const tileRefs = visuals.map(config => createDiceTile(config));
+            tileRefs.forEach(tileRef => diceOverlayDiceList.appendChild(tileRef.tile));
+            runDiceAnimation(tileRefs);
 
             lastDiceSignature = signature;
         }
