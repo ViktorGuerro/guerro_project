@@ -25,6 +25,27 @@
 .master-controls .panel h3 {
     margin: 0 0 8px;
     font-size: 16px;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.master-controls .panel h3::after {
+    content: '▾';
+    font-size: 12px;
+    color: #bdbdbd;
+    transform: rotate(0deg);
+    transition: transform .15s ease;
+}
+.master-controls .panel.is-collapsed h3 {
+    margin-bottom: 0;
+}
+.master-controls .panel.is-collapsed h3::after {
+    transform: rotate(-90deg);
+}
+.master-controls .panel-content {
+    overflow: hidden;
 }
 .master-controls .form-row {
     margin-bottom: 6px;
@@ -166,6 +187,9 @@
 
 #notes { width: 100%; min-height: 78px; }
 #master-icons-layer { pointer-events: auto; }
+.master-controls .panel.is-collapsed .panel-content {
+    display: none;
+}
 #selected-icon-meta {
     font-size: 13px;
     color: #d2d2d2;

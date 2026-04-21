@@ -508,6 +508,47 @@
         notes.addEventListener('input', () => localStorage.setItem('master_notes', notes.value));
     }
 
+    function initPanelCollapse() {
+        document.querySelectorAll('.master-controls .panel').forEach(panel => {
+            if (panel.id === 'selected-icon-panel') {
+                return;
+            }
+
+            const title = panel.querySelector('h3');
+            if (!title) {
+                return;
+            }
+
+            let content = panel.querySelector(':scope > .panel-content');
+            if (!content) {
+                content = document.createElement('div');
+                content.className = 'panel-content';
+                const nodes = Array.from(panel.children).filter(node => node !== title);
+                nodes.forEach(node => content.appendChild(node));
+                panel.appendChild(content);
+            }
+
+            panel.classList.add('is-collapsed');
+            title.setAttribute('tabindex', '0');
+            title.setAttribute('role', 'button');
+            title.setAttribute('aria-expanded', 'false');
+
+            const toggle = () => {
+                const collapsed = panel.classList.toggle('is-collapsed');
+                title.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+            };
+
+            title.addEventListener('click', toggle);
+            title.addEventListener('keydown', e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggle();
+                }
+            });
+        });
+    }
+
+    initPanelCollapse();
     bindForms();
     DndCommon.startPolling(render, 700);
 })();
