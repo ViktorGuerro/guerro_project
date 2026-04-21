@@ -1,0 +1,19 @@
+.master-layout {
+    display: grid;
+    grid-template-columns: 460px 1fr;
+    gap: 16px;
+    min-height: 100vh;
+    padding: 16px;
+}
+.master-controls { overflow-y: auto; }
+#master-map-stage { height: calc(100vh - 32px); border-radius: 12px; }
+.entity-list-item, .map-list-item {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #383838;
+    padding: 6px 0;
+}
+#notes { width: 100%; min-height: 120px; }
+#master-icons-layer { pointer-events: auto; }
