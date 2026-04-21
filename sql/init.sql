@@ -62,16 +62,26 @@ CREATE TABLE map_icons (
 
 CREATE TABLE battle_overlay_state (
     id INT PRIMARY KEY,
-    entity_id INT DEFAULT NULL,
+    attacker_entity_id INT DEFAULT NULL,
+    target_entity_id INT DEFAULT NULL,
     visible_until DATETIME DEFAULT NULL,
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_battle_overlay_entity
-        FOREIGN KEY (entity_id) REFERENCES entities(id)
+    CONSTRAINT fk_battle_overlay_attacker_entity
+        FOREIGN KEY (attacker_entity_id) REFERENCES entities(id)
+        ON DELETE SET NULL,
+    CONSTRAINT fk_battle_overlay_target_entity
+        FOREIGN KEY (target_entity_id) REFERENCES entities(id)
         ON DELETE SET NULL
 );
 
-INSERT INTO battle_overlay_state (id, entity_id, visible_until)
-VALUES (1, NULL, NULL);
+INSERT INTO battle_overlay_state (id, attacker_entity_id, target_entity_id, visible_until)
+VALUES (1, NULL, NULL, NULL);
+
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    migration_name VARCHAR(255) NOT NULL UNIQUE,
+    applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 
 CREATE TABLE ability_overlay_state (
     id INT PRIMARY KEY,

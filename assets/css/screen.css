@@ -137,14 +137,32 @@
 
 .battle-overlay {
     position: absolute;
-    left: 40px;
     bottom: 40px;
+    left: 0;
+    right: 0;
     z-index: 24;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    padding: 0 40px;
     transition: opacity .2s ease;
 }
 .battle-overlay.hidden {
     opacity: 0;
     pointer-events: none;
+}
+.battle-side {
+    max-width: 42vw;
+}
+.battle-side.hidden {
+    display: none;
+}
+.battle-side-right .battle-overlay-card {
+    flex-direction: row-reverse;
+}
+.battle-side-right .battle-overlay-info {
+    text-align: right;
 }
 .battle-overlay-card {
     display: flex;
@@ -170,7 +188,7 @@
     object-fit: cover;
 }
 .battle-overlay-name {
-    font-size: 34px;
+    font-size: 28px;
     font-weight: 800;
     margin-bottom: 8px;
     line-height: 1;
@@ -183,7 +201,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 30px;
+    font-size: 25px;
     font-weight: 800;
 }
 .battle-stat img {

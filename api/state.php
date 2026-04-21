@@ -21,13 +21,40 @@ $dcVisible = $dc['visible_until'] !== null && strtotime((string) $dc['visible_un
 
 
 $battleOverlayStmt = $pdo->query(
-    'SELECT bos.entity_id, bos.visible_until, e.id AS entity_id_full, e.name, e.side, e.image_path, e.armor_class, e.hp_current, e.hp_max
+    'SELECT
+        bos.attacker_entity_id,
+        bos.target_entity_id,
+        bos.visible_until,
+        attacker.id AS attacker_id,
+        attacker.name AS attacker_name,
+        attacker.side AS attacker_side,
+        attacker.image_path AS attacker_image_path,
+        attacker.armor_class AS attacker_armor_class,
+        attacker.hp_current AS attacker_hp_current,
+        attacker.hp_max AS attacker_hp_max,
+        target.id AS target_id,
+        target.name AS target_name,
+        target.side AS target_side,
+        target.image_path AS target_image_path,
+        target.armor_class AS target_armor_class,
+        target.hp_current AS target_hp_current,
+        target.hp_max AS target_hp_max
      FROM battle_overlay_state bos
-     LEFT JOIN entities e ON e.id = bos.entity_id
+     LEFT JOIN entities attacker ON attacker.id = bos.attacker_entity_id
+     LEFT JOIN entities target ON target.id = bos.target_entity_id
      WHERE bos.id = 1'
 );
-$battleOverlay = $battleOverlayStmt->fetch() ?: ['entity_id' => null, 'visible_until' => null];
-$battleOverlayVisible = $battleOverlay['visible_until'] !== null && strtotime((string) $battleOverlay['visible_until']) > time() && $battleOverlay['entity_id_full'] !== null;
+$battleOverlay = $battleOverlayStmt->fetch() ?: [
+    'attacker_entity_id' => null,
+    'target_entity_id' => null,
+    'visible_until' => null,
+    'attacker_id' => null,
+    'target_id' => null,
+];
+$battleOverlayVisible = $battleOverlay['visible_until'] !== null
+    && strtotime((string) $battleOverlay['visible_until']) > time()
+    && $battleOverlay['attacker_id'] !== null
+    && $battleOverlay['target_id'] !== null;
 
 $abilityRangeStmt = $pdo->query(
     'SELECT ars.icon_id, ars.range_cells, ars.visible_until, mi.grid_x, mi.grid_y, mi.size_cells
@@ -79,14 +106,23 @@ api_ok([
 
     'battle_overlay' => [
         'active' => $battleOverlayVisible,
-        'entity' => $battleOverlayVisible ? [
-            'id' => (int) $battleOverlay['entity_id_full'],
-            'name' => $battleOverlay['name'],
-            'side' => $battleOverlay['side'],
-            'image_path' => $battleOverlay['image_path'],
-            'armor_class' => $battleOverlay['armor_class'] !== null ? (int) $battleOverlay['armor_class'] : null,
-            'hp_current' => $battleOverlay['hp_current'] !== null ? (int) $battleOverlay['hp_current'] : null,
-            'hp_max' => $battleOverlay['hp_max'] !== null ? (int) $battleOverlay['hp_max'] : null,
+        'attacker' => $battleOverlayVisible ? [
+            'id' => (int) $battleOverlay['attacker_id'],
+            'name' => $battleOverlay['attacker_name'],
+            'side' => $battleOverlay['attacker_side'],
+            'image_path' => $battleOverlay['attacker_image_path'],
+            'armor_class' => $battleOverlay['attacker_armor_class'] !== null ? (int) $battleOverlay['attacker_armor_class'] : null,
+            'hp_current' => $battleOverlay['attacker_hp_current'] !== null ? (int) $battleOverlay['attacker_hp_current'] : null,
+            'hp_max' => $battleOverlay['attacker_hp_max'] !== null ? (int) $battleOverlay['attacker_hp_max'] : null,
+        ] : null,
+        'target' => $battleOverlayVisible ? [
+            'id' => (int) $battleOverlay['target_id'],
+            'name' => $battleOverlay['target_name'],
+            'side' => $battleOverlay['target_side'],
+            'image_path' => $battleOverlay['target_image_path'],
+            'armor_class' => $battleOverlay['target_armor_class'] !== null ? (int) $battleOverlay['target_armor_class'] : null,
+            'hp_current' => $battleOverlay['target_hp_current'] !== null ? (int) $battleOverlay['target_hp_current'] : null,
+            'hp_max' => $battleOverlay['target_hp_max'] !== null ? (int) $battleOverlay['target_hp_max'] : null,
         ] : null,
     ],
     'ability_overlay' => [

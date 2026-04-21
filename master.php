@@ -69,6 +69,28 @@
         </div>
 
         <div class="panel">
+            <h3>Боевой overlay</h3>
+            <form id="battle-overlay-form">
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="battle-attacker-entity" class="field-label">Кто атакует</label>
+                        <select id="battle-attacker-entity"></select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="battle-target-entity" class="field-label">Кого атакуют</label>
+                        <select id="battle-target-entity"></select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <button type="submit">Показать бой</button>
+                    <button type="button" id="btn-hide-battle-overlay" class="secondary">Скрыть бой</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="panel">
             <h3>Герои и враги</h3>
             <form id="entity-form" enctype="multipart/form-data">
                 <input type="hidden" id="entity-id" name="id" value="">

@@ -9,10 +9,16 @@
     const dcBox = document.getElementById('dc-box');
     const dcValue = document.getElementById('dc-value');
     const battleOverlay = document.getElementById('battle-overlay');
-    const battleOverlayImage = document.getElementById('battle-overlay-image');
-    const battleOverlayName = document.getElementById('battle-overlay-name');
-    const battleOverlayAc = document.getElementById('battle-overlay-ac');
-    const battleOverlayHp = document.getElementById('battle-overlay-hp');
+    const battleAttackerBlock = document.getElementById('battle-overlay-attacker');
+    const battleTargetBlock = document.getElementById('battle-overlay-target');
+    const battleOverlayAttackerImage = document.getElementById('battle-overlay-attacker-image');
+    const battleOverlayAttackerName = document.getElementById('battle-overlay-attacker-name');
+    const battleOverlayAttackerAc = document.getElementById('battle-overlay-attacker-ac');
+    const battleOverlayAttackerHp = document.getElementById('battle-overlay-attacker-hp');
+    const battleOverlayTargetImage = document.getElementById('battle-overlay-target-image');
+    const battleOverlayTargetName = document.getElementById('battle-overlay-target-name');
+    const battleOverlayTargetAc = document.getElementById('battle-overlay-target-ac');
+    const battleOverlayTargetHp = document.getElementById('battle-overlay-target-hp');
 
     function renderAbilityCircle(state) {
         abilityLayer.innerHTML = '';
@@ -45,18 +51,48 @@
 
     function renderBattleOverlay(state) {
         const overlayData = state.battle_overlay;
-        if (!overlayData?.active || !overlayData.entity) {
+        if (!overlayData?.active) {
             battleOverlay.classList.add('hidden');
             return;
         }
 
-        const entity = overlayData.entity;
+        const renderBattleSide = (entity, sideBlock, image, name, ac, hp) => {
+            if (!entity) {
+                sideBlock.classList.add('hidden');
+                return;
+            }
+            sideBlock.classList.remove('hidden');
+            image.src = entity.image_path || '';
+            image.alt = entity.name || '';
+            name.textContent = entity.name || 'Без имени';
+            ac.textContent = entity.armor_class ?? '-';
+            hp.textContent = `${entity.hp_current ?? '-'}${entity.hp_max !== null ? `/${entity.hp_max}` : ''}`;
+        };
+
+        renderBattleSide(
+            overlayData.attacker,
+            battleAttackerBlock,
+            battleOverlayAttackerImage,
+            battleOverlayAttackerName,
+            battleOverlayAttackerAc,
+            battleOverlayAttackerHp
+        );
+        renderBattleSide(
+            overlayData.target,
+            battleTargetBlock,
+            battleOverlayTargetImage,
+            battleOverlayTargetName,
+            battleOverlayTargetAc,
+            battleOverlayTargetHp
+        );
+
+        const hasAnySide = Boolean(overlayData.attacker || overlayData.target);
+        if (!hasAnySide) {
+            battleOverlay.classList.add('hidden');
+            return;
+        }
+
         battleOverlay.classList.remove('hidden');
-        battleOverlayImage.src = entity.image_path || '';
-        battleOverlayImage.alt = entity.name || '';
-        battleOverlayName.textContent = entity.name || 'Без имени';
-        battleOverlayAc.textContent = entity.armor_class ?? '-';
-        battleOverlayHp.textContent = `${entity.hp_current ?? '-'}${entity.hp_max !== null ? `/${entity.hp_max}` : ''}`;
     }
 
     function render(state) {

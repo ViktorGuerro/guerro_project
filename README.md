@@ -13,11 +13,28 @@
 1. Создайте БД и пользователя, например:
    - БД: `guerro_db`
    - пользователь: `guerro_user`
-2. Импортируйте схему:
+2. Для новой установки импортируйте базовую схему:
 
 ```bash
 mysql -u guerro_user -p guerro_db < sql/init.sql
 ```
+
+3. После обновления проекта применяйте новые миграции из `sql/migrations/` (по порядку файлов):
+
+```bash
+mysql -u guerro_user -p guerro_db < sql/migrations/000_create_schema_migrations.sql
+mysql -u guerro_user -p guerro_db < sql/migrations/001_split_battle_overlay_to_attacker_and_target.sql
+```
+
+`sql/init.sql` используется только для развёртывания с нуля. Обновления существующей БД должны идти через миграции из `sql/migrations/`.
+
+### Правило изменений схемы
+
+При каждом изменении структуры БД:
+
+1. Обновляйте `sql/init.sql` для новых установок.
+2. Добавляйте отдельную миграцию в `sql/migrations/`.
+3. Обновляйте README, если поменялся процесс установки/обновления.
 
 ## Настройка подключения к БД
 

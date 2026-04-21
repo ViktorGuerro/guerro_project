@@ -18,20 +18,42 @@
     </div>
     <div id="viewers-placeholder" class="placeholder">Подготовка сцены</div>
     <div id="battle-overlay" class="battle-overlay hidden">
-        <div class="battle-overlay-card">
-            <div class="battle-overlay-portrait">
-                <img id="battle-overlay-image" src="" alt="">
-            </div>
-            <div class="battle-overlay-info">
-                <div id="battle-overlay-name" class="battle-overlay-name"></div>
-                <div class="battle-overlay-stats">
-                    <div class="battle-stat">
-                        <img src="/assets/img/ui/shield.png" alt="">
-                        <span id="battle-overlay-ac"></span>
+        <div id="battle-overlay-attacker" class="battle-side battle-side-left hidden">
+            <div class="battle-overlay-card">
+                <div class="battle-overlay-portrait">
+                    <img id="battle-overlay-attacker-image" src="" alt="">
+                </div>
+                <div class="battle-overlay-info">
+                    <div id="battle-overlay-attacker-name" class="battle-overlay-name"></div>
+                    <div class="battle-overlay-stats">
+                        <div class="battle-stat">
+                            <img src="/assets/img/ui/shield.png" alt="">
+                            <span id="battle-overlay-attacker-ac"></span>
+                        </div>
+                        <div class="battle-stat">
+                            <img src="/assets/img/ui/heart.png" alt="">
+                            <span id="battle-overlay-attacker-hp"></span>
+                        </div>
                     </div>
-                    <div class="battle-stat">
-                        <img src="/assets/img/ui/heart.png" alt="">
-                        <span id="battle-overlay-hp"></span>
+                </div>
+            </div>
+        </div>
+        <div id="battle-overlay-target" class="battle-side battle-side-right hidden">
+            <div class="battle-overlay-card">
+                <div class="battle-overlay-portrait">
+                    <img id="battle-overlay-target-image" src="" alt="">
+                </div>
+                <div class="battle-overlay-info">
+                    <div id="battle-overlay-target-name" class="battle-overlay-name"></div>
+                    <div class="battle-overlay-stats">
+                        <div class="battle-stat">
+                            <img src="/assets/img/ui/shield.png" alt="">
+                            <span id="battle-overlay-target-ac"></span>
+                        </div>
+                        <div class="battle-stat">
+                            <img src="/assets/img/ui/heart.png" alt="">
+                            <span id="battle-overlay-target-hp"></span>
+                        </div>
                     </div>
                 </div>
             </div>

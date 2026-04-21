@@ -44,6 +44,10 @@
         sceneDebugToggle: document.getElementById('scene-debug-toggle'),
         sceneDebugInfo: document.getElementById('scene-debug-info'),
         debugLayer: document.getElementById('master-debug-layer'),
+        battleOverlayForm: document.getElementById('battle-overlay-form'),
+        battleAttackerEntity: document.getElementById('battle-attacker-entity'),
+        battleTargetEntity: document.getElementById('battle-target-entity'),
+        battleHideButton: document.getElementById('btn-hide-battle-overlay'),
     };
 
     let latestState = null;
@@ -339,8 +343,6 @@
                         <button class="edit-entity" data-id="${e.id}" type="button">Редактировать</button>
                         <button class="quick-add-icon" data-id="${e.id}" type="button">Добавить на карту</button>
                         <button class="duplicate-entity" data-id="${e.id}" type="button">Дублировать</button>
-                        <button class="show-overlay" data-id="${e.id}" type="button">Показать в overlay</button>
-                        <button class="hide-overlay" type="button">Скрыть overlay</button>
                         <div class="quick-stats">
                             <span>ХП:</span>
                             <button class="quick-stat" data-id="${e.id}" data-hp="-5" type="button">-5</button>
@@ -363,6 +365,20 @@
         stateEls.addIconEntity.innerHTML = entities.map(e => `<option value="${e.id}">${DndCommon.escapeHtml(e.name)}</option>`).join('');
         if (previousValue && entities.some(e => String(e.id) === previousValue)) {
             stateEls.addIconEntity.value = previousValue;
+        }
+
+        const currentAttacker = state.battle_overlay?.attacker?.id ? String(state.battle_overlay.attacker.id) : stateEls.battleAttackerEntity.value;
+        const currentTarget = state.battle_overlay?.target?.id ? String(state.battle_overlay.target.id) : stateEls.battleTargetEntity.value;
+
+        const battleOptions = ['<option value="">— Выберите —</option>', ...entities.map(e => `<option value="${e.id}">${DndCommon.escapeHtml(e.name)}</option>`)];
+        stateEls.battleAttackerEntity.innerHTML = battleOptions.join('');
+        stateEls.battleTargetEntity.innerHTML = battleOptions.join('');
+
+        if (currentAttacker && entities.some(e => String(e.id) === currentAttacker)) {
+            stateEls.battleAttackerEntity.value = currentAttacker;
+        }
+        if (currentTarget && entities.some(e => String(e.id) === currentTarget)) {
+            stateEls.battleTargetEntity.value = currentTarget;
         }
     }
 
@@ -698,14 +714,29 @@
                 }
                 await postForm('/api/update_entity_stats.php', payload);
             }
-            if (target.classList.contains('show-overlay')) {
-                await postForm('/api/show_battle_overlay.php', { entity_id: Number(target.dataset.id) });
-                closeAllActionMenus();
+        });
+
+        stateEls.battleOverlayForm?.addEventListener('submit', async e => {
+            pauseUpdates(2200);
+            e.preventDefault();
+
+            const attackerId = Number(stateEls.battleAttackerEntity.value);
+            const targetId = Number(stateEls.battleTargetEntity.value);
+
+            if (!attackerId || !targetId) {
+                alert('Выберите обе стороны боя.');
+                return;
             }
-            if (target.classList.contains('hide-overlay')) {
-                await postForm('/api/hide_battle_overlay.php', {});
-                closeAllActionMenus();
-            }
+
+            await postForm('/api/show_battle_overlay.php', {
+                attacker_entity_id: attackerId,
+                target_entity_id: targetId,
+            });
+        });
+
+        stateEls.battleHideButton?.addEventListener('click', async () => {
+            pauseUpdates(2200);
+            await postForm('/api/hide_battle_overlay.php', {});
         });
 
         document.getElementById('add-icon-form').addEventListener('submit', async e => {
