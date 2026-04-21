@@ -36,6 +36,16 @@
     let editingEntityId = null;
     let selectedIconId = null;
     let gridFormDirty = false;
+    let pauseUpdatesUntil = 0;
+
+
+    function pauseUpdates(ms = 1800) {
+        pauseUpdatesUntil = Math.max(pauseUpdatesUntil, Date.now() + ms);
+    }
+
+    function isUpdatesPaused() {
+        return Date.now() < pauseUpdatesUntil || document.querySelector('.item-menu.open') !== null;
+    }
 
     function closeAllActionMenus() {
         document.querySelectorAll('.item-menu.open').forEach(menu => menu.classList.remove('open'));
@@ -48,6 +58,7 @@
         }
 
         const isOpen = container.classList.contains('open');
+        pauseUpdates(3500);
         closeAllActionMenus();
         if (!isOpen) {
             container.classList.add('open');
@@ -147,6 +158,11 @@
 
     function render(state) {
         latestState = state;
+
+        if (isUpdatesPaused()) {
+            return;
+        }
+
         fillMapList();
         fillEntityList(state);
 
@@ -256,6 +272,8 @@
                 return;
             }
 
+            pauseUpdates();
+
             if (target.classList.contains('menu-toggle')) {
                 toggleActionMenu(target);
                 return;
@@ -283,6 +301,7 @@
         });
 
         document.getElementById('grid-form').addEventListener('submit', async e => {
+            pauseUpdates(2200);
             e.preventDefault();
             await postForm('/api/update_state.php', {
                 grid_cell_size: stateEls.gridCellSize.value,
@@ -300,6 +319,7 @@
         });
 
         document.getElementById('dc-show-form').addEventListener('submit', async e => {
+            pauseUpdates(2200);
             e.preventDefault();
             const input = document.getElementById('dc-input');
             await postForm('/api/show_dc.php', { dc_value: input.value });
@@ -308,6 +328,7 @@
         document.getElementById('btn-hide-dc').onclick = () => postForm('/api/hide_dc.php', {});
 
         stateEls.entityForm.addEventListener('submit', async e => {
+            pauseUpdates(2200);
             e.preventDefault();
             const fd = new FormData(e.currentTarget);
             if (!editingEntityId) {
@@ -325,10 +346,14 @@
                 return;
             }
 
+            pauseUpdates();
+
             if (target.classList.contains('menu-toggle')) {
                 toggleActionMenu(target);
                 return;
             }
+
+            pauseUpdates();
 
             if (target.classList.contains('del-entity')) {
                 if (confirm('Удалить сущность?')) {
@@ -347,6 +372,7 @@
         });
 
         document.getElementById('add-icon-form').addEventListener('submit', async e => {
+            pauseUpdates(2200);
             e.preventDefault();
             await postForm('/api/add_icon.php', {
                 entity_id: stateEls.addIconEntity.value,
@@ -357,6 +383,7 @@
         });
 
         stateEls.selectedIconForm.addEventListener('submit', async e => {
+            pauseUpdates(2200);
             e.preventDefault();
             if (!selectedIconId) {
                 return;
@@ -370,6 +397,7 @@
         });
 
         stateEls.selectedIconDelete.addEventListener('click', async () => {
+            pauseUpdates(2200);
             if (!selectedIconId) {
                 return;
             }
@@ -381,6 +409,7 @@
 
         document.querySelectorAll('.icon-step').forEach(btn => {
             btn.addEventListener('click', async () => {
+                pauseUpdates(2200);
                 const dir = btn.dataset.dir;
                 const shifts = {
                     left: [-1, 0],
@@ -395,12 +424,14 @@
 
         document.querySelectorAll('.icon-size-step').forEach(btn => {
             btn.addEventListener('click', async () => {
+                pauseUpdates(2200);
                 await resizeSelectedIcon(Number(btn.dataset.delta || 0));
             });
         });
 
         stateEls.entityForm.querySelectorAll('.quick-adjust').forEach(button => {
             button.addEventListener('click', () => {
+                pauseUpdates(3000);
                 const targetId = button.dataset.target;
                 const delta = Number(button.dataset.delta || 0);
                 changeInputValue(targetId, delta, 0);
@@ -408,6 +439,7 @@
         });
 
         stateEls.mapStage.addEventListener('click', e => {
+            pauseUpdates(1200);
             if (e.target === stateEls.iconsLayer || e.target === stateEls.gridLayer || e.target === stateEls.mapImage || e.target === stateEls.mapStage) {
                 setSelectedIcon(null);
             }
@@ -417,6 +449,11 @@
             if (!(e.target instanceof Element) || !e.target.closest('.item-menu')) {
                 closeAllActionMenus();
             }
+        });
+
+
+        document.querySelector('.master-controls')?.addEventListener('pointerdown', () => {
+            pauseUpdates(2500);
         });
 
         const notes = document.getElementById('notes');
