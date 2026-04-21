@@ -107,10 +107,34 @@
                     </div>
                 </div>
 
+                <div class="form-row">
+                    <div class="form-field">
+                        <div class="field-label">Режим броска</div>
+                        <div id="dice-roll-mode" class="dice-roll-mode">
+                            <label><input type="radio" name="dice_roll_mode" value="normal" checked> Обычный</label>
+                            <label><input type="radio" name="dice_roll_mode" value="advantage"> Преимущество</label>
+                            <label><input type="radio" name="dice_roll_mode" value="disadvantage"> Помеха</label>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="dice-groups-list" class="dice-groups-list"></div>
 
                 <div class="form-row">
                     <button id="btn-add-dice-group" type="button" class="secondary">Добавить группу</button>
+                </div>
+
+                <div id="dice-advantage-values" class="dice-advantage-values hidden">
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label for="dice-advantage-roll-1" class="field-label">Бросок 1 (d20)</label>
+                            <input id="dice-advantage-roll-1" type="number" min="1" max="20" placeholder="1..20">
+                        </div>
+                        <div class="form-field">
+                            <label for="dice-advantage-roll-2" class="field-label">Бросок 2 (d20)</label>
+                            <input id="dice-advantage-roll-2" type="number" min="1" max="20" placeholder="1..20">
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-row">

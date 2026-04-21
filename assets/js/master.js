@@ -51,8 +51,12 @@
         diceOverlayForm: document.getElementById('dice-overlay-form'),
         diceEntity: document.getElementById('dice-entity'),
         diceLabel: document.getElementById('dice-label'),
+        diceRollMode: document.getElementById('dice-roll-mode'),
         diceGroupsList: document.getElementById('dice-groups-list'),
         diceAddGroupButton: document.getElementById('btn-add-dice-group'),
+        diceAdvantageValues: document.getElementById('dice-advantage-values'),
+        diceAdvantageRoll1: document.getElementById('dice-advantage-roll-1'),
+        diceAdvantageRoll2: document.getElementById('dice-advantage-roll-2'),
         diceModifier: document.getElementById('dice-modifier'),
         diceTotal: document.getElementById('dice-total'),
         diceCriticalPreview: document.getElementById('dice-critical-preview'),
@@ -67,6 +71,8 @@
     let gridFormDirty = false;
     let pauseUpdatesUntil = 0;
     let diceGroups = [];
+    let diceRollMode = 'normal';
+    let advantageValues = [null, null];
 
 
     function pauseUpdates(ms = 1800) {
@@ -147,6 +153,46 @@
         return 'none';
     }
 
+    function getSelectedRollForMode(mode, values) {
+        if (!Array.isArray(values) || values.length !== 2) {
+            return null;
+        }
+        const [first, second] = values;
+        if (!Number.isInteger(first) || !Number.isInteger(second)) {
+            return null;
+        }
+        if (mode === 'advantage') {
+            return Math.max(first, second);
+        }
+        if (mode === 'disadvantage') {
+            return Math.min(first, second);
+        }
+        return null;
+    }
+
+    function getCurrentDiceRollMode() {
+        const selected = stateEls.diceRollMode?.querySelector('input[name="dice_roll_mode"]:checked');
+        return selected?.value || 'normal';
+    }
+
+    function sanitizeAdvantageValues(values) {
+        const source = Array.isArray(values) ? values : [];
+        return [0, 1].map(index => {
+            const value = Number(source[index]);
+            if (!Number.isInteger(value) || value < 1 || value > 20) {
+                return null;
+            }
+            return value;
+        });
+    }
+
+    function updateDiceModeUI() {
+        const isSpecialMode = diceRollMode === 'advantage' || diceRollMode === 'disadvantage';
+        stateEls.diceGroupsList?.classList.toggle('hidden', isSpecialMode);
+        stateEls.diceAddGroupButton?.classList.toggle('hidden', isSpecialMode);
+        stateEls.diceAdvantageValues?.classList.toggle('hidden', !isSpecialMode);
+    }
+
     function createDefaultDiceGroup() {
         return {
             dice_type: 'd6',
@@ -179,6 +225,7 @@
         if (!stateEls.diceGroupsList) {
             return;
         }
+        updateDiceModeUI();
 
         stateEls.diceGroupsList.innerHTML = '';
 
@@ -286,16 +333,30 @@
         if (!stateEls.diceTotal) {
             return;
         }
-        const valuesSum = diceGroups.reduce((sum, group) => {
-            const groupSum = (group.dice_values || []).reduce((acc, value) => acc + (Number.isInteger(value) ? value : 0), 0);
-            return sum + groupSum;
-        }, 0);
-
         const modifier = Number(stateEls.diceModifier?.value || 0);
-        const total = valuesSum + (Number.isFinite(modifier) ? modifier : 0);
+        const normalizedModifier = Number.isFinite(modifier) ? Math.trunc(modifier) : 0;
+        const isSpecialMode = diceRollMode === 'advantage' || diceRollMode === 'disadvantage';
+        const valuesSum = isSpecialMode
+            ? (getSelectedRollForMode(diceRollMode, advantageValues) || 0)
+            : diceGroups.reduce((sum, group) => {
+                const groupSum = (group.dice_values || []).reduce((acc, value) => acc + (Number.isInteger(value) ? value : 0), 0);
+                return sum + groupSum;
+            }, 0);
+        const total = valuesSum + normalizedModifier;
         stateEls.diceTotal.value = String(total);
 
-        const criticalState = calculateCriticalState(diceGroups);
+        const criticalState = isSpecialMode
+            ? (() => {
+                const selected = getSelectedRollForMode(diceRollMode, advantageValues);
+                if (selected === 20) {
+                    return 'success';
+                }
+                if (selected === 1) {
+                    return 'fail';
+                }
+                return 'none';
+            })()
+            : calculateCriticalState(diceGroups);
         if (stateEls.diceCriticalPreview) {
             stateEls.diceCriticalPreview.classList.remove('crit-success', 'crit-fail');
             if (criticalState === 'success') {
@@ -305,7 +366,7 @@
                 stateEls.diceCriticalPreview.textContent = 'Критический провал';
                 stateEls.diceCriticalPreview.classList.add('crit-fail');
             } else {
-                stateEls.diceCriticalPreview.textContent = 'Обычный бросок';
+                stateEls.diceCriticalPreview.textContent = isSpecialMode ? 'Преимущество / помеха' : 'Обычный бросок';
             }
         }
     }
@@ -324,6 +385,16 @@
             });
         });
         return groups;
+    }
+
+    function getValidatedAdvantageValues() {
+        const values = sanitizeAdvantageValues(advantageValues);
+        values.forEach((value, index) => {
+            if (!Number.isInteger(value)) {
+                throw new Error(`Бросок ${index + 1}: нужно значение 1..20`);
+            }
+        });
+        return values;
     }
 
 
@@ -976,16 +1047,38 @@
             diceGroups.push(createDefaultDiceGroup());
             renderDiceGroups();
         });
+        stateEls.diceRollMode?.querySelectorAll('input[name="dice_roll_mode"]').forEach(input => {
+            input.addEventListener('change', () => {
+                diceRollMode = getCurrentDiceRollMode();
+                updateDiceModeUI();
+                recalculateDiceTotal();
+            });
+        });
+        const onAdvantageInput = () => {
+            advantageValues = sanitizeAdvantageValues([
+                stateEls.diceAdvantageRoll1?.value,
+                stateEls.diceAdvantageRoll2?.value,
+            ]);
+            recalculateDiceTotal();
+        };
+        stateEls.diceAdvantageRoll1?.addEventListener('input', onAdvantageInput);
+        stateEls.diceAdvantageRoll2?.addEventListener('input', onAdvantageInput);
         stateEls.diceModifier?.addEventListener('input', recalculateDiceTotal);
 
         stateEls.diceOverlayForm?.addEventListener('submit', async e => {
             pauseUpdates(2200);
             e.preventDefault();
+            const rollMode = getCurrentDiceRollMode();
             let groups = [];
+            let validatedAdvantageValues = [];
             try {
-                groups = getValidatedDiceGroups();
+                if (rollMode === 'normal') {
+                    groups = getValidatedDiceGroups();
+                } else {
+                    validatedAdvantageValues = getValidatedAdvantageValues();
+                }
             } catch (error) {
-                alert(error.message || 'Проверьте значения групп кубов.');
+                alert(error.message || 'Проверьте значения броска.');
                 return;
             }
 
@@ -993,8 +1086,13 @@
             const payload = {
                 label: (stateEls.diceLabel.value || '').trim(),
                 modifier: Number.isInteger(modifier) ? modifier : 0,
-                groups_json: JSON.stringify(groups),
+                roll_mode: rollMode,
             };
+            if (rollMode === 'normal') {
+                payload.groups_json = JSON.stringify(groups);
+            } else {
+                payload.advantage_values_json = JSON.stringify(validatedAdvantageValues);
+            }
             const entityId = Number(stateEls.diceEntity.value || 0);
             if (entityId > 0) {
                 payload.entity_id = entityId;
@@ -1203,6 +1301,8 @@
         if (!diceGroups.length) {
             diceGroups = [createDefaultDiceGroup()];
         }
+        diceRollMode = getCurrentDiceRollMode();
+        updateDiceModeUI();
         renderDiceGroups();
 
         const notes = document.getElementById('notes');

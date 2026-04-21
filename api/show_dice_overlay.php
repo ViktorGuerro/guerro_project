@@ -13,6 +13,7 @@ const ALLOWED_DICE_TYPES = [
     'd12' => 12,
     'd20' => 20,
 ];
+const ALLOWED_ROLL_MODES = ['normal', 'advantage', 'disadvantage'];
 
 function normalize_groups(mixed $rawGroups): array
 {
@@ -83,18 +84,61 @@ function detect_critical_state(array $groups): string
     return 'none';
 }
 
+function normalize_advantage_values(mixed $rawValues): array
+{
+    if (!is_array($rawValues) || count($rawValues) !== 2) {
+        api_error('advantage_values_required');
+    }
+
+    $values = [];
+    foreach ($rawValues as $value) {
+        $parsed = filter_var($value, FILTER_VALIDATE_INT);
+        if ($parsed === false || $parsed < 1 || $parsed > 20) {
+            api_error('advantage_value_out_of_range');
+        }
+        $values[] = (int) $parsed;
+    }
+
+    return $values;
+}
+
 $entityId = post_int('entity_id');
 $label = post_string('label');
 $modifier = post_int('modifier', 0) ?? 0;
-
-$rawGroups = $_POST['groups'] ?? null;
-if (isset($_POST['groups_json'])) {
-    $decodedGroups = json_decode((string) $_POST['groups_json'], true);
-    if (is_array($decodedGroups)) {
-        $rawGroups = $decodedGroups;
-    }
+$rollMode = post_string('roll_mode', 'normal') ?? 'normal';
+if (!in_array($rollMode, ALLOWED_ROLL_MODES, true)) {
+    api_error('invalid_roll_mode');
 }
-$groups = normalize_groups($rawGroups);
+
+$groups = [];
+$advantageValues = null;
+$selectedRoll = null;
+if ($rollMode === 'normal') {
+    $rawGroups = $_POST['groups'] ?? null;
+    if (isset($_POST['groups_json'])) {
+        $decodedGroups = json_decode((string) $_POST['groups_json'], true);
+        if (is_array($decodedGroups)) {
+            $rawGroups = $decodedGroups;
+        }
+    }
+    $groups = normalize_groups($rawGroups);
+} else {
+    $rawAdvantageValues = $_POST['advantage_values'] ?? null;
+    if (isset($_POST['advantage_values_json'])) {
+        $decodedAdvantageValues = json_decode((string) $_POST['advantage_values_json'], true);
+        if (is_array($decodedAdvantageValues)) {
+            $rawAdvantageValues = $decodedAdvantageValues;
+        }
+    }
+    $advantageValues = normalize_advantage_values($rawAdvantageValues);
+    $selectedRoll = $rollMode === 'advantage'
+        ? max($advantageValues[0], $advantageValues[1])
+        : min($advantageValues[0], $advantageValues[1]);
+    $groups = [
+        ['dice_type' => 'd20', 'dice_count' => 1, 'dice_values' => [$advantageValues[0]]],
+        ['dice_type' => 'd20', 'dice_count' => 1, 'dice_values' => [$advantageValues[1]]],
+    ];
+}
 
 if ($entityId !== null) {
     $check = $pdo->prepare('SELECT id FROM entities WHERE id = :id');
@@ -104,11 +148,16 @@ if ($entityId !== null) {
     }
 }
 
-$totalValue = array_reduce($groups, static function (int $sum, array $group): int {
-    return $sum + array_sum($group['dice_values']);
-}, 0) + $modifier;
+$totalBase = $rollMode === 'normal'
+    ? array_reduce($groups, static function (int $sum, array $group): int {
+        return $sum + array_sum($group['dice_values']);
+    }, 0)
+    : (int) $selectedRoll;
+$totalValue = $totalBase + $modifier;
 
-$criticalState = detect_critical_state($groups);
+$criticalState = $rollMode === 'normal'
+    ? detect_critical_state($groups)
+    : ($selectedRoll === 20 ? 'success' : ($selectedRoll === 1 ? 'fail' : 'none'));
 
 $legacyType = $groups[0]['dice_type'] ?? null;
 $legacyCount = $groups[0]['dice_count'] ?? null;
@@ -118,7 +167,10 @@ $update = $pdo->prepare(
     'UPDATE dice_overlay_state
      SET entity_id = :entity_id,
          label = :label,
+         roll_mode = :roll_mode,
          dice_groups_json = :dice_groups_json,
+         advantage_values_json = :advantage_values_json,
+         selected_roll = :selected_roll,
          dice_type = :dice_type,
          dice_count = :dice_count,
          dice_values_json = :dice_values_json,
@@ -130,7 +182,10 @@ $update = $pdo->prepare(
 $update->execute([
     'entity_id' => $entityId,
     'label' => $label,
+    'roll_mode' => $rollMode,
     'dice_groups_json' => json_encode($groups, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+    'advantage_values_json' => $advantageValues !== null ? json_encode($advantageValues, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
+    'selected_roll' => $selectedRoll,
     'dice_type' => $legacyType,
     'dice_count' => $legacyCount,
     'dice_values_json' => $legacyValues !== null ? json_encode($legacyValues, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
@@ -141,7 +196,10 @@ $update->execute([
 api_ok([
     'entity_id' => $entityId,
     'label' => $label,
+    'roll_mode' => $rollMode,
     'groups' => $groups,
+    'advantage_values' => $advantageValues,
+    'selected_roll' => $selectedRoll,
     'modifier' => $modifier,
     'total_value' => $totalValue,
     'critical_state' => $criticalState,

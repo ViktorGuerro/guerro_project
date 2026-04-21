@@ -82,7 +82,10 @@ CREATE TABLE dice_overlay_state (
     id INT PRIMARY KEY,
     entity_id INT DEFAULT NULL,
     label VARCHAR(255) DEFAULT NULL,
+    roll_mode ENUM('normal', 'advantage', 'disadvantage') NOT NULL DEFAULT 'normal',
     dice_groups_json TEXT DEFAULT NULL,
+    advantage_values_json TEXT DEFAULT NULL,
+    selected_roll TINYINT UNSIGNED DEFAULT NULL,
     dice_type VARCHAR(10) DEFAULT NULL,
     dice_count INT DEFAULT NULL,
     dice_values_json TEXT DEFAULT NULL,
@@ -95,8 +98,8 @@ CREATE TABLE dice_overlay_state (
         ON DELETE SET NULL
 );
 
-INSERT INTO dice_overlay_state (id, entity_id, label, dice_groups_json, dice_type, dice_count, dice_values_json, modifier, total_value, visible_until)
-VALUES (1, NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL);
+INSERT INTO dice_overlay_state (id, entity_id, label, roll_mode, dice_groups_json, advantage_values_json, selected_roll, dice_type, dice_count, dice_values_json, modifier, total_value, visible_until)
+VALUES (1, NULL, NULL, 'normal', NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, NULL);
 
 CREATE TABLE IF NOT EXISTS schema_migrations (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -124,4 +127,5 @@ INSERT IGNORE INTO schema_migrations (migration_name) VALUES
     ('001_split_battle_overlay_to_attacker_and_target.sql'),
     ('002_add_dice_overlay_state.sql'),
     ('003_expand_entities_side_enum_for_boss_and_npc.sql'),
-    ('004_extend_dice_overlay_to_groups.sql');
+    ('004_extend_dice_overlay_to_groups.sql'),
+    ('005_extend_dice_overlay_roll_modes.sql');

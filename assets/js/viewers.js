@@ -92,10 +92,16 @@
         }
 
         const groups = Array.isArray(overlay.groups) ? overlay.groups : [];
+        const rollMode = overlay.roll_mode || 'normal';
+        const isSpecialMode = rollMode === 'advantage' || rollMode === 'disadvantage';
+        const advantageValues = Array.isArray(overlay.advantage_values) ? overlay.advantage_values : [];
         const signature = JSON.stringify({
             entityId: overlay.entity?.id || null,
             label: overlay.label || '',
+            rollMode,
             groups,
+            advantageValues,
+            selectedRoll: overlay.selected_roll ?? null,
             modifier: overlay.modifier || 0,
             total: overlay.total_value || 0,
             criticalState: overlay.critical_state || 'none',
@@ -104,9 +110,9 @@
         diceOverlayActor.textContent = overlay.entity?.name || 'Без сущности';
         diceOverlayLabel.textContent = overlay.label || 'Бросок';
 
-        const groupsSummary = groups
-            .map(group => `${group.dice_count}${group.dice_type}: ${(group.dice_values || []).join(' + ')}`)
-            .join(' • ');
+        const groupsSummary = isSpecialMode
+            ? `${rollMode === 'advantage' ? 'Преимущество' : 'Помеха'} • d20: ${(advantageValues || []).join(' / ')}`
+            : groups.map(group => `${group.dice_count}${group.dice_type}: ${(group.dice_values || []).join(' + ')}`).join(' • ');
         const modifierLabel = overlay.modifier ? ` ${overlay.modifier > 0 ? '+' : '-'} ${Math.abs(overlay.modifier)}` : '';
         const criticalLabel = overlay.critical_state === 'success'
             ? ' • Критический успех'
@@ -122,7 +128,49 @@
             diceOverlayDiceList.innerHTML = '';
             let tileOffset = 0;
 
-            groups.forEach((group, groupIndex) => {
+            if (isSpecialMode) {
+                const modeBadge = document.createElement('div');
+                modeBadge.className = 'dice-roll-mode-badge';
+                modeBadge.textContent = rollMode === 'advantage' ? 'Преимущество' : 'Помеха';
+                diceOverlayDiceList.appendChild(modeBadge);
+
+                const specialWrap = document.createElement('div');
+                specialWrap.className = 'dice-special-tiles';
+                const selectedRoll = Number(overlay.selected_roll);
+                advantageValues.forEach((value, index) => {
+                    const tile = document.createElement('div');
+                    const isSelected = Number(value) === selectedRoll;
+                    tile.className = `dice-tile rolling ${isSelected ? 'selected' : 'unselected'}`;
+                    tile.style.animationDelay = `${index * 100}ms`;
+                    if (selectedRoll === 20 && isSelected) {
+                        tile.classList.add('crit-success');
+                    }
+                    if (selectedRoll === 1 && isSelected) {
+                        tile.classList.add('crit-fail');
+                    }
+
+                    const type = document.createElement('div');
+                    type.className = 'dice-type';
+                    type.textContent = 'd20';
+                    const val = document.createElement('div');
+                    val.className = 'dice-value';
+                    val.textContent = '?';
+                    const mark = document.createElement('div');
+                    mark.className = 'dice-picked-mark';
+                    mark.textContent = isSelected ? 'В расчёт' : 'Не выбран';
+                    tile.appendChild(type);
+                    tile.appendChild(val);
+                    tile.appendChild(mark);
+                    specialWrap.appendChild(tile);
+
+                    setTimeout(() => {
+                        val.textContent = String(value);
+                        tile.classList.remove('rolling');
+                    }, 600 + index * 120);
+                });
+                diceOverlayDiceList.appendChild(specialWrap);
+            } else {
+                groups.forEach((group, groupIndex) => {
                 const groupWrap = document.createElement('div');
                 groupWrap.className = 'dice-group-view';
 
@@ -175,7 +223,8 @@
                     separator.textContent = '+';
                     diceOverlayDiceList.appendChild(separator);
                 }
-            });
+                });
+            }
 
             lastDiceSignature = signature;
         }

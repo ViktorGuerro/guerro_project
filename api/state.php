@@ -61,7 +61,10 @@ $diceOverlayStmt = $pdo->query(
     'SELECT
         dos.entity_id,
         dos.label,
+        dos.roll_mode,
         dos.dice_groups_json,
+        dos.advantage_values_json,
+        dos.selected_roll,
         dos.dice_type,
         dos.dice_count,
         dos.dice_values_json,
@@ -79,6 +82,9 @@ $diceOverlayStmt = $pdo->query(
 $diceOverlay = $diceOverlayStmt->fetch() ?: [
     'entity_id' => null,
     'label' => null,
+    'roll_mode' => 'normal',
+    'advantage_values_json' => null,
+    'selected_roll' => null,
     'dice_type' => null,
     'dice_count' => null,
     'dice_values_json' => null,
@@ -87,6 +93,9 @@ $diceOverlay = $diceOverlayStmt->fetch() ?: [
     'visible_until' => null,
     'dice_entity_id' => null,
 ];
+$rollMode = in_array($diceOverlay['roll_mode'], ['normal', 'advantage', 'disadvantage'], true)
+    ? (string) $diceOverlay['roll_mode']
+    : 'normal';
 $diceGroups = [];
 if ($diceOverlay['dice_groups_json'] !== null) {
     $decodedGroups = json_decode((string) $diceOverlay['dice_groups_json'], true);
@@ -143,13 +152,41 @@ if (!$diceGroups && $diceOverlay['dice_type'] !== null && $diceOverlay['dice_cou
     }
 }
 
-$d20Groups = array_values(array_filter($diceGroups, static fn (array $group): bool => $group['dice_type'] === 'd20'));
+$advantageValues = null;
+if ($diceOverlay['advantage_values_json'] !== null) {
+    $decodedAdvantageValues = json_decode((string) $diceOverlay['advantage_values_json'], true);
+    if (is_array($decodedAdvantageValues) && count($decodedAdvantageValues) === 2) {
+        $parsed = [];
+        foreach ($decodedAdvantageValues as $rawValue) {
+            $value = filter_var($rawValue, FILTER_VALIDATE_INT);
+            if ($value === false || $value < 1 || $value > 20) {
+                $parsed = [];
+                break;
+            }
+            $parsed[] = (int) $value;
+        }
+        if (count($parsed) === 2) {
+            $advantageValues = $parsed;
+        }
+    }
+}
+
+$selectedRoll = $diceOverlay['selected_roll'] !== null ? (int) $diceOverlay['selected_roll'] : null;
 $criticalState = 'none';
-if (count($d20Groups) === 1 && $d20Groups[0]['dice_count'] === 1 && count($d20Groups[0]['dice_values']) === 1) {
-    if ($d20Groups[0]['dice_values'][0] === 20) {
+if ($rollMode === 'advantage' || $rollMode === 'disadvantage') {
+    if ($selectedRoll === 20) {
         $criticalState = 'success';
-    } elseif ($d20Groups[0]['dice_values'][0] === 1) {
+    } elseif ($selectedRoll === 1) {
         $criticalState = 'fail';
+    }
+} else {
+    $d20Groups = array_values(array_filter($diceGroups, static fn (array $group): bool => $group['dice_type'] === 'd20'));
+    if (count($d20Groups) === 1 && $d20Groups[0]['dice_count'] === 1 && count($d20Groups[0]['dice_values']) === 1) {
+        if ($d20Groups[0]['dice_values'][0] === 20) {
+            $criticalState = 'success';
+        } elseif ($d20Groups[0]['dice_values'][0] === 1) {
+            $criticalState = 'fail';
+        }
     }
 }
 
@@ -236,7 +273,10 @@ api_ok([
             'image_path' => $diceOverlay['dice_entity_image_path'],
         ] : null,
         'label' => $diceOverlayVisible ? $diceOverlay['label'] : null,
+        'roll_mode' => $diceOverlayVisible ? $rollMode : 'normal',
         'groups' => $diceOverlayVisible ? $diceGroups : [],
+        'advantage_values' => $diceOverlayVisible ? $advantageValues : null,
+        'selected_roll' => $diceOverlayVisible ? $selectedRoll : null,
         'modifier' => $diceOverlayVisible ? (int) $diceOverlay['modifier'] : 0,
         'total_value' => $diceOverlayVisible ? (int) $diceOverlay['total_value'] : null,
         'critical_state' => $diceOverlayVisible ? $criticalState : 'none',

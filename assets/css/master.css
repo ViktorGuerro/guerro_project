@@ -402,6 +402,20 @@
     grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
     gap: 6px;
 }
+.dice-roll-mode {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.dice-roll-mode label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+}
+.dice-advantage-values {
+    margin: 8px 0;
+}
 .dice-value-item input {
     text-align: center;
 }

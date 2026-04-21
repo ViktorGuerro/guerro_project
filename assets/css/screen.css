@@ -251,6 +251,16 @@
     flex-wrap: wrap;
     gap: 12px;
 }
+.dice-roll-mode-badge {
+    width: 100%;
+    font-size: 18px;
+    font-weight: 800;
+    color: #bfe0ff;
+}
+.dice-special-tiles {
+    display: flex;
+    gap: 12px;
+}
 
 .dice-group-view {
     display: grid;
@@ -299,6 +309,14 @@
     box-shadow: 0 0 20px rgba(255, 82, 82, 0.42), inset 0 0 20px rgba(255, 120, 120, 0.16);
     background: linear-gradient(155deg, #4a2525, #271616);
 }
+.dice-tile.selected {
+    border-color: rgba(141, 203, 255, 0.95);
+    box-shadow: 0 0 24px rgba(120, 198, 255, 0.44), inset 0 0 18px rgba(120, 198, 255, 0.2);
+}
+.dice-tile.unselected {
+    opacity: 0.65;
+    filter: saturate(0.7);
+}
 .dice-type {
     font-size: 19px;
     font-weight: 800;
@@ -308,6 +326,11 @@
     font-size: 42px;
     line-height: 1;
     font-weight: 900;
+}
+.dice-picked-mark {
+    font-size: 12px;
+    font-weight: 700;
+    color: #d3e2ff;
 }
 .dice-summary,
 .dice-overlay-summary {
