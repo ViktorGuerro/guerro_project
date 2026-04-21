@@ -648,7 +648,7 @@
     function fillEntityList(state) {
         const entities = state.entities;
         stateEls.entityList.innerHTML = entities.map(e => `<div class="list-item entity-list-item">
-            <span class="item-title">${DndCommon.escapeHtml(e.name)} (${formatSideLabel(e.side)})${Number(e.is_unconscious) === 1 ? ' • Без сознания' : ''} • КД ${e.armor_class ?? '-'} • ХП ${e.hp_current ?? '-'}${e.hp_max !== null ? `/${e.hp_max}` : ''}</span>
+            <span class="item-title">${DndCommon.escapeHtml(e.name)} • ${formatSideLabel(e.side)} • КД ${e.armor_class ?? '-'} • ХП ${e.hp_current ?? '-'}${e.hp_max !== null ? `/${e.hp_max}` : ''}${Number(e.is_unconscious) === 1 ? ' • без сознания' : ''}</span>
             <div class="item-controls">
                 <div class="item-menu" data-type="entity" data-id="${e.id}">
                     <button type="button" class="menu-toggle" aria-label="Действия сущности">...</button>
@@ -721,10 +721,9 @@
         }
 
         stateEls.sceneIconsList.innerHTML = icons.map(icon => {
-            const entity = state.entities.find(e => Number(e.id) === Number(icon.entity_id));
             const selectedClass = Number(icon.id) === Number(selectedIconId) ? ' selected' : '';
             return `<div class="scene-icon-row${selectedClass}" data-id="${icon.id}">
-                <div class="scene-icon-meta">#${icon.id} ${DndCommon.escapeHtml(icon.name || 'Без имени')} (${DndCommon.escapeHtml(formatSideLabel(entity?.side))}) • (${icon.grid_x}, ${icon.grid_y}) • size ${icon.size_cells} • visible ${Number(icon.is_visible) === 1 ? 'yes' : 'no'}</div>
+                <div class="scene-icon-meta">#${icon.id} ${DndCommon.escapeHtml(icon.name || 'Без имени')} • (${icon.grid_x}, ${icon.grid_y}) • size ${icon.size_cells}</div>
                 <div class="scene-icon-actions">
                     <button type="button" class="scene-select secondary" data-id="${icon.id}">Выбрать</button>
                     <button type="button" class="scene-center secondary" data-id="${icon.id}">В центр</button>
@@ -1428,10 +1427,6 @@
 
     function initPanelCollapse() {
         document.querySelectorAll('.master-controls .panel').forEach(panel => {
-            if (panel.id === 'selected-icon-panel') {
-                return;
-            }
-
             const title = panel.querySelector('h3');
             if (!title) {
                 return;
@@ -1446,10 +1441,11 @@
                 panel.appendChild(content);
             }
 
-            panel.classList.add('is-collapsed');
+            const defaultOpen = panel.dataset.defaultOpen === 'true';
+            panel.classList.toggle('is-collapsed', !defaultOpen);
             title.setAttribute('tabindex', '0');
             title.setAttribute('role', 'button');
-            title.setAttribute('aria-expanded', 'false');
+            title.setAttribute('aria-expanded', defaultOpen ? 'true' : 'false');
 
             const toggle = () => {
                 const collapsed = panel.classList.toggle('is-collapsed');
