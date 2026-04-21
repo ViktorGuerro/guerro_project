@@ -32,6 +32,9 @@
         selectedIconSizeCells: document.getElementById('selected-icon-size-cells'),
         selectedIconDelete: document.getElementById('selected-icon-delete'),
         selectedIconCenter: document.getElementById('selected-icon-center'),
+        selectedIconRange: document.getElementById('selected-icon-range'),
+        selectedIconShowRange: document.getElementById('selected-icon-show-range'),
+        selectedIconHideRange: document.getElementById('selected-icon-hide-range'),
         sceneIconsList: document.getElementById('scene-icons-list'),
         sceneDebugToggle: document.getElementById('scene-debug-toggle'),
         sceneDebugInfo: document.getElementById('scene-debug-info'),
@@ -187,6 +190,22 @@
                     <button type="button" class="menu-toggle" aria-label="Действия сущности">...</button>
                     <div class="dropdown-menu">
                         <button class="edit-entity" data-id="${e.id}" type="button">Редактировать</button>
+                        <button class="quick-add-icon" data-id="${e.id}" type="button">Добавить на карту</button>
+                        <button class="duplicate-entity" data-id="${e.id}" type="button">Дублировать</button>
+                        <button class="show-overlay" data-id="${e.id}" type="button">Показать в overlay</button>
+                        <button class="hide-overlay" type="button">Скрыть overlay</button>
+                        <div class="quick-stats">
+                            <span>ХП:</span>
+                            <button class="quick-stat" data-id="${e.id}" data-hp="-5" type="button">-5</button>
+                            <button class="quick-stat" data-id="${e.id}" data-hp="-1" type="button">-1</button>
+                            <button class="quick-stat" data-id="${e.id}" data-hp="1" type="button">+1</button>
+                            <button class="quick-stat" data-id="${e.id}" data-hp="5" type="button">+5</button>
+                        </div>
+                        <div class="quick-stats">
+                            <span>КД:</span>
+                            <button class="quick-stat" data-id="${e.id}" data-ac="-1" type="button">-1</button>
+                            <button class="quick-stat" data-id="${e.id}" data-ac="1" type="button">+1</button>
+                        </div>
                         <button class="danger del-entity" data-id="${e.id}" type="button">Удалить</button>
                     </div>
                 </div>
@@ -494,6 +513,32 @@
                 }
                 closeAllActionMenus();
             }
+            if (target.classList.contains('quick-add-icon')) {
+                await postForm('/api/add_entity_icon.php', { entity_id: Number(target.dataset.id) });
+                closeAllActionMenus();
+            }
+            if (target.classList.contains('duplicate-entity')) {
+                await postForm('/api/duplicate_entity.php', { id: Number(target.dataset.id) });
+                closeAllActionMenus();
+            }
+            if (target.classList.contains('quick-stat')) {
+                const payload = { id: Number(target.dataset.id) };
+                if (target.dataset.hp) {
+                    payload.delta_hp = Number(target.dataset.hp);
+                }
+                if (target.dataset.ac) {
+                    payload.delta_ac = Number(target.dataset.ac);
+                }
+                await postForm('/api/update_entity_stats.php', payload);
+            }
+            if (target.classList.contains('show-overlay')) {
+                await postForm('/api/show_battle_overlay.php', { entity_id: Number(target.dataset.id) });
+                closeAllActionMenus();
+            }
+            if (target.classList.contains('hide-overlay')) {
+                await postForm('/api/hide_battle_overlay.php', {});
+                closeAllActionMenus();
+            }
         });
 
         document.getElementById('add-icon-form').addEventListener('submit', async e => {
@@ -537,6 +582,22 @@
                 return;
             }
             await centerIconById(selectedIconId);
+        });
+
+        stateEls.selectedIconShowRange?.addEventListener('click', async () => {
+            pauseUpdates(2200);
+            if (!selectedIconId) {
+                return;
+            }
+            await postForm('/api/show_ability_range.php', {
+                icon_id: selectedIconId,
+                range_cells: Math.max(1, Number(stateEls.selectedIconRange?.value || 1)),
+            });
+        });
+
+        stateEls.selectedIconHideRange?.addEventListener('click', async () => {
+            pauseUpdates(2200);
+            await postForm('/api/hide_ability_range.php', {});
         });
 
         stateEls.sceneIconsList.addEventListener('click', async e => {

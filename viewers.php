@@ -17,10 +17,32 @@
         <div id="dc-value" class="dc-value"></div>
     </div>
     <div id="viewers-placeholder" class="placeholder">Подготовка сцены</div>
+    <div id="battle-overlay" class="battle-overlay hidden">
+        <div class="battle-overlay-card">
+            <div class="battle-overlay-portrait">
+                <img id="battle-overlay-image" src="" alt="">
+            </div>
+            <div class="battle-overlay-info">
+                <div id="battle-overlay-name" class="battle-overlay-name"></div>
+                <div class="battle-overlay-stats">
+                    <div class="battle-stat">
+                        <img src="/assets/img/ui/shield.png" alt="">
+                        <span id="battle-overlay-ac"></span>
+                    </div>
+                    <div class="battle-stat">
+                        <img src="/assets/img/ui/heart.png" alt="">
+                        <span id="battle-overlay-hp"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="viewers-stage" class="screen-map-stage map-stage hidden">
         <div class="scene-layer" id="viewers-scene-layer">
             <img id="viewers-map-image" class="map-image" src="" alt="map">
             <div id="viewers-grid-layer" class="grid-layer"></div>
+            <div id="viewers-ability-overlay-layer" class="ability-overlay-layer"></div>
             <div id="viewers-icons-layer" class="icons-layer"></div>
         </div>
     </div>

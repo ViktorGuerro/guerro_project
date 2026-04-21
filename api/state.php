@@ -19,6 +19,25 @@ $dcStmt = $pdo->query('SELECT dc_value, visible_until FROM dc_state WHERE id = 1
 $dc = $dcStmt->fetch() ?: ['dc_value' => null, 'visible_until' => null];
 $dcVisible = $dc['visible_until'] !== null && strtotime((string) $dc['visible_until']) > time();
 
+
+$battleOverlayStmt = $pdo->query(
+    'SELECT bos.entity_id, bos.visible_until, e.id AS entity_id_full, e.name, e.side, e.image_path, e.armor_class, e.hp_current, e.hp_max
+     FROM battle_overlay_state bos
+     LEFT JOIN entities e ON e.id = bos.entity_id
+     WHERE bos.id = 1'
+);
+$battleOverlay = $battleOverlayStmt->fetch() ?: ['entity_id' => null, 'visible_until' => null];
+$battleOverlayVisible = $battleOverlay['visible_until'] !== null && strtotime((string) $battleOverlay['visible_until']) > time() && $battleOverlay['entity_id_full'] !== null;
+
+$abilityRangeStmt = $pdo->query(
+    'SELECT ars.icon_id, ars.range_cells, ars.visible_until, mi.grid_x, mi.grid_y, mi.size_cells
+     FROM ability_overlay_state ars
+     LEFT JOIN map_icons mi ON mi.id = ars.icon_id
+     WHERE ars.id = 1'
+);
+$abilityRange = $abilityRangeStmt->fetch() ?: ['icon_id' => null, 'range_cells' => null, 'visible_until' => null, 'grid_x' => null, 'grid_y' => null, 'size_cells' => null];
+$abilityRangeVisible = $abilityRange['visible_until'] !== null && strtotime((string) $abilityRange['visible_until']) > time() && $abilityRange['icon_id'] !== null && $abilityRange['range_cells'] !== null;
+
 $entities = $pdo->query('SELECT id, name, side, image_path, armor_class, hp_current, hp_max, sort_order, is_visible FROM entities ORDER BY sort_order, id')->fetchAll();
 
 $icons = $pdo->query(
@@ -57,5 +76,26 @@ api_ok([
         $row['is_visible'] = (int) $row['is_visible'];
         return $row;
     }, $icons),
+
+    'battle_overlay' => [
+        'active' => $battleOverlayVisible,
+        'entity' => $battleOverlayVisible ? [
+            'id' => (int) $battleOverlay['entity_id_full'],
+            'name' => $battleOverlay['name'],
+            'side' => $battleOverlay['side'],
+            'image_path' => $battleOverlay['image_path'],
+            'armor_class' => $battleOverlay['armor_class'] !== null ? (int) $battleOverlay['armor_class'] : null,
+            'hp_current' => $battleOverlay['hp_current'] !== null ? (int) $battleOverlay['hp_current'] : null,
+            'hp_max' => $battleOverlay['hp_max'] !== null ? (int) $battleOverlay['hp_max'] : null,
+        ] : null,
+    ],
+    'ability_overlay' => [
+        'active' => $abilityRangeVisible,
+        'icon_id' => $abilityRangeVisible ? (int) $abilityRange['icon_id'] : null,
+        'range_cells' => $abilityRangeVisible ? (int) $abilityRange['range_cells'] : null,
+        'grid_x' => $abilityRangeVisible ? (int) $abilityRange['grid_x'] : null,
+        'grid_y' => $abilityRangeVisible ? (int) $abilityRange['grid_y'] : null,
+        'size_cells' => $abilityRangeVisible ? (int) $abilityRange['size_cells'] : null,
+    ],
     'poll_interval_ms' => (int) $config['app']['poll_interval_ms'],
 ]);

@@ -59,3 +59,30 @@ CREATE TABLE map_icons (
         FOREIGN KEY (entity_id) REFERENCES entities(id)
         ON DELETE CASCADE
 );
+
+CREATE TABLE battle_overlay_state (
+    id INT PRIMARY KEY,
+    entity_id INT DEFAULT NULL,
+    visible_until DATETIME DEFAULT NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_battle_overlay_entity
+        FOREIGN KEY (entity_id) REFERENCES entities(id)
+        ON DELETE SET NULL
+);
+
+INSERT INTO battle_overlay_state (id, entity_id, visible_until)
+VALUES (1, NULL, NULL);
+
+CREATE TABLE ability_overlay_state (
+    id INT PRIMARY KEY,
+    icon_id INT DEFAULT NULL,
+    range_cells INT DEFAULT NULL,
+    visible_until DATETIME DEFAULT NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ability_overlay_icon
+        FOREIGN KEY (icon_id) REFERENCES map_icons(id)
+        ON DELETE SET NULL
+);
+
+INSERT INTO ability_overlay_state (id, icon_id, range_cells, visible_until)
+VALUES (1, NULL, NULL, NULL);

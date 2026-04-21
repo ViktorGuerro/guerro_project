@@ -189,6 +189,16 @@
                 <div class="form-row">
                     <button id="selected-icon-center" type="button" class="secondary">Расположить по центру</button>
                 </div>
+                <div class="form-row form-row-split">
+                    <div class="form-field">
+                        <label for="selected-icon-range" class="field-label">Дальность, клеток</label>
+                        <input id="selected-icon-range" type="number" min="1" max="100" value="6" placeholder="range_cells">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <button id="selected-icon-show-range" type="button">Показать дальность</button>
+                    <button id="selected-icon-hide-range" type="button" class="secondary">Скрыть дальность</button>
+                </div>
                 <div class="form-row">
                     <button type="submit">Сохранить</button>
                     <button id="selected-icon-delete" type="button" class="danger">Удалить иконку</button>

@@ -17,6 +17,7 @@
         <div class="scene-layer" id="players-scene-layer">
             <img id="players-map-image" class="map-image" src="" alt="map">
             <div id="players-grid-layer" class="grid-layer"></div>
+            <div id="players-ability-overlay-layer" class="ability-overlay-layer"></div>
             <div id="players-icons-layer" class="icons-layer"></div>
         </div>
     </div>
