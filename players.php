@@ -10,6 +10,7 @@
 </head>
 <body>
 <div class="screen-wrap">
+    <div class="controls-hotspot" aria-hidden="true"></div>
     <div class="top-controls"><button id="btn-refresh" class="secondary">Обновить</button><button id="btn-fullscreen">Fullscreen</button></div>
     <div id="players-placeholder" class="placeholder">Подготовка сцены</div>
     <div id="players-stage" class="screen-map-stage map-stage hidden">

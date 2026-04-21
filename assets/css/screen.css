@@ -8,13 +8,32 @@
     position: absolute;
     inset: 0;
 }
+.controls-hotspot {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 240px;
+    height: 90px;
+    z-index: 21;
+}
 .top-controls {
     position: absolute;
     top: 16px;
     right: 16px;
-    z-index: 20;
+    z-index: 22;
     display: flex;
     gap: 8px;
+    opacity: 0;
+    transform: translateY(-8px);
+    pointer-events: none;
+    transition: opacity .15s ease, transform .15s ease;
+}
+.controls-hotspot:hover + .top-controls,
+.top-controls:hover,
+.top-controls:focus-within {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
 }
 .dc-box {
     position: absolute;
