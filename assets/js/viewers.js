@@ -19,6 +19,13 @@
     const battleOverlayTargetName = document.getElementById('battle-overlay-target-name');
     const battleOverlayTargetAc = document.getElementById('battle-overlay-target-ac');
     const battleOverlayTargetHp = document.getElementById('battle-overlay-target-hp');
+    const diceOverlay = document.getElementById('dice-overlay');
+    const diceOverlayActor = document.getElementById('dice-overlay-actor');
+    const diceOverlayLabel = document.getElementById('dice-overlay-label');
+    const diceOverlayDiceList = document.getElementById('dice-overlay-dice-list');
+    const diceOverlaySummary = document.getElementById('dice-overlay-summary');
+
+    let lastDiceSignature = null;
 
     function renderAbilityCircle(state) {
         abilityLayer.innerHTML = '';
@@ -69,30 +76,60 @@
             hp.textContent = `${entity.hp_current ?? '-'}${entity.hp_max !== null ? `/${entity.hp_max}` : ''}`;
         };
 
-        renderBattleSide(
-            overlayData.attacker,
-            battleAttackerBlock,
-            battleOverlayAttackerImage,
-            battleOverlayAttackerName,
-            battleOverlayAttackerAc,
-            battleOverlayAttackerHp
-        );
-        renderBattleSide(
-            overlayData.target,
-            battleTargetBlock,
-            battleOverlayTargetImage,
-            battleOverlayTargetName,
-            battleOverlayTargetAc,
-            battleOverlayTargetHp
-        );
+        renderBattleSide(overlayData.attacker, battleAttackerBlock, battleOverlayAttackerImage, battleOverlayAttackerName, battleOverlayAttackerAc, battleOverlayAttackerHp);
+        renderBattleSide(overlayData.target, battleTargetBlock, battleOverlayTargetImage, battleOverlayTargetName, battleOverlayTargetAc, battleOverlayTargetHp);
 
-        const hasAnySide = Boolean(overlayData.attacker || overlayData.target);
-        if (!hasAnySide) {
-            battleOverlay.classList.add('hidden');
+        battleOverlay.classList.toggle('hidden', !Boolean(overlayData.attacker || overlayData.target));
+    }
+
+    function renderDiceOverlay(state) {
+        const overlay = state.dice_overlay;
+        if (!overlay?.active) {
+            diceOverlay.classList.add('hidden');
+            diceOverlayDiceList.innerHTML = '';
+            lastDiceSignature = null;
             return;
         }
 
-        battleOverlay.classList.remove('hidden');
+        const signature = JSON.stringify({
+            entityId: overlay.entity?.id || null,
+            label: overlay.label || '',
+            diceType: overlay.dice_type || '',
+            values: overlay.dice_values || [],
+            modifier: overlay.modifier || 0,
+            total: overlay.total_value || 0,
+        });
+
+        diceOverlayActor.textContent = overlay.entity?.name || 'Без сущности';
+        diceOverlayLabel.textContent = overlay.label || 'Бросок';
+        diceOverlaySummary.textContent = `Σ ${overlay.total_value ?? '-'} (${(overlay.dice_values || []).join(' + ')}${overlay.modifier ? ` ${overlay.modifier > 0 ? '+' : '-'} ${Math.abs(overlay.modifier)}` : ''})`;
+
+        if (signature !== lastDiceSignature) {
+            diceOverlayDiceList.innerHTML = '';
+            (overlay.dice_values || []).forEach((value, index) => {
+                const tile = document.createElement('div');
+                tile.className = 'dice-tile rolling';
+                tile.style.animationDelay = `${index * 90}ms`;
+                const type = document.createElement('div');
+                type.className = 'dice-type';
+                type.textContent = overlay.dice_type || '';
+                const val = document.createElement('div');
+                val.className = 'dice-value';
+                val.textContent = '?';
+                tile.appendChild(type);
+                tile.appendChild(val);
+                diceOverlayDiceList.appendChild(tile);
+
+                setTimeout(() => {
+                    val.textContent = String(value);
+                    tile.classList.add('revealed');
+                    tile.classList.remove('rolling');
+                }, 650 + index * 120);
+            });
+            lastDiceSignature = signature;
+        }
+
+        diceOverlay.classList.remove('hidden');
     }
 
     function render(state) {
@@ -125,6 +162,7 @@
         }
 
         renderBattleOverlay(state);
+        renderDiceOverlay(state);
     }
 
     DndCommon.startPolling(render, 700);

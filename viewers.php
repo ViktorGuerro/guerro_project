@@ -60,6 +60,16 @@
         </div>
     </div>
 
+
+    <div id="dice-overlay" class="dice-overlay hidden">
+        <div class="dice-overlay-header">
+            <div id="dice-overlay-actor" class="dice-overlay-actor"></div>
+            <div id="dice-overlay-label" class="dice-overlay-label"></div>
+        </div>
+        <div id="dice-overlay-dice-list" class="dice-overlay-dice-list"></div>
+        <div id="dice-overlay-summary" class="dice-overlay-summary"></div>
+    </div>
+
     <div id="viewers-stage" class="screen-map-stage map-stage hidden">
         <div class="scene-layer" id="viewers-scene-layer">
             <img id="viewers-map-image" class="map-image" src="" alt="map">

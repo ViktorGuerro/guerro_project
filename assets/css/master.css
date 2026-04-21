@@ -396,3 +396,12 @@
         font-size: 13px;
     }
 }
+
+.dice-values-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+    gap: 6px;
+}
+.dice-value-item input {
+    text-align: center;
+}

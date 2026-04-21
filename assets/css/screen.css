@@ -209,3 +209,84 @@
     height: 42px;
     object-fit: contain;
 }
+
+.dice-overlay {
+    position: absolute;
+    left: 50%;
+    bottom: 34px;
+    transform: translateX(-50%);
+    z-index: 25;
+    min-width: min(1100px, 90vw);
+    max-width: 92vw;
+    border-radius: 18px;
+    padding: 18px 22px;
+    background: rgba(13, 14, 18, 0.86);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(4px);
+    transition: opacity .2s ease, transform .2s ease;
+}
+.dice-overlay.hidden {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    pointer-events: none;
+}
+.dice-overlay-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+.dice-overlay-actor {
+    font-size: 28px;
+    font-weight: 800;
+}
+.dice-overlay-label {
+    font-size: 23px;
+    font-weight: 700;
+    color: #d0e5ff;
+}
+.dice-overlay-dice-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.dice-tile {
+    width: 110px;
+    height: 110px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: linear-gradient(155deg, #2e313d, #161821);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: inset 0 0 18px rgba(255, 255, 255, 0.06), 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+.dice-tile.rolling {
+    animation: dice-roll .95s ease;
+}
+.dice-type {
+    font-size: 19px;
+    font-weight: 800;
+    color: #98b8ff;
+}
+.dice-value {
+    font-size: 42px;
+    line-height: 1;
+    font-weight: 900;
+}
+.dice-summary,
+.dice-overlay-summary {
+    margin-top: 14px;
+    font-size: 30px;
+    font-weight: 900;
+}
+
+@keyframes dice-roll {
+    0% { transform: scale(.6) rotate(-18deg); opacity: 0; }
+    35% { transform: scale(1.08) rotate(12deg); opacity: 1; }
+    70% { transform: scale(.96) rotate(-6deg); }
+    100% { transform: scale(1) rotate(0deg); }
+}

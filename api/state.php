@@ -56,6 +56,51 @@ $battleOverlayVisible = $battleOverlay['visible_until'] !== null
     && $battleOverlay['attacker_id'] !== null
     && $battleOverlay['target_id'] !== null;
 
+
+$diceOverlayStmt = $pdo->query(
+    'SELECT
+        dos.entity_id,
+        dos.label,
+        dos.dice_type,
+        dos.dice_count,
+        dos.dice_values_json,
+        dos.modifier,
+        dos.total_value,
+        dos.visible_until,
+        e.id AS dice_entity_id,
+        e.name AS dice_entity_name,
+        e.side AS dice_entity_side,
+        e.image_path AS dice_entity_image_path
+     FROM dice_overlay_state dos
+     LEFT JOIN entities e ON e.id = dos.entity_id
+     WHERE dos.id = 1'
+);
+$diceOverlay = $diceOverlayStmt->fetch() ?: [
+    'entity_id' => null,
+    'label' => null,
+    'dice_type' => null,
+    'dice_count' => null,
+    'dice_values_json' => null,
+    'modifier' => 0,
+    'total_value' => null,
+    'visible_until' => null,
+    'dice_entity_id' => null,
+];
+$diceValues = [];
+if ($diceOverlay['dice_values_json'] !== null) {
+    $decodedValues = json_decode((string) $diceOverlay['dice_values_json'], true);
+    if (is_array($decodedValues)) {
+        $diceValues = array_values(array_filter(array_map(static function ($value): ?int {
+            return is_int($value) ? $value : (filter_var($value, FILTER_VALIDATE_INT) !== false ? (int) $value : null);
+        }, $decodedValues), static fn ($value): bool => $value !== null));
+    }
+}
+$diceOverlayVisible = $diceOverlay['visible_until'] !== null
+    && strtotime((string) $diceOverlay['visible_until']) > time()
+    && $diceOverlay['dice_type'] !== null
+    && $diceOverlay['dice_count'] !== null
+    && count($diceValues) === (int) $diceOverlay['dice_count'];
+
 $abilityRangeStmt = $pdo->query(
     'SELECT ars.icon_id, ars.range_cells, ars.visible_until, mi.grid_x, mi.grid_y, mi.size_cells
      FROM ability_overlay_state ars
@@ -124,6 +169,22 @@ api_ok([
             'hp_current' => $battleOverlay['target_hp_current'] !== null ? (int) $battleOverlay['target_hp_current'] : null,
             'hp_max' => $battleOverlay['target_hp_max'] !== null ? (int) $battleOverlay['target_hp_max'] : null,
         ] : null,
+    ],
+
+    'dice_overlay' => [
+        'active' => $diceOverlayVisible,
+        'entity' => $diceOverlayVisible && $diceOverlay['dice_entity_id'] !== null ? [
+            'id' => (int) $diceOverlay['dice_entity_id'],
+            'name' => $diceOverlay['dice_entity_name'],
+            'side' => $diceOverlay['dice_entity_side'],
+            'image_path' => $diceOverlay['dice_entity_image_path'],
+        ] : null,
+        'label' => $diceOverlayVisible ? $diceOverlay['label'] : null,
+        'dice_type' => $diceOverlayVisible ? $diceOverlay['dice_type'] : null,
+        'dice_count' => $diceOverlayVisible ? (int) $diceOverlay['dice_count'] : null,
+        'dice_values' => $diceOverlayVisible ? array_map(static fn ($value): int => (int) $value, $diceValues) : [],
+        'modifier' => $diceOverlayVisible ? (int) $diceOverlay['modifier'] : 0,
+        'total_value' => $diceOverlayVisible ? (int) $diceOverlay['total_value'] : null,
     ],
     'ability_overlay' => [
         'active' => $abilityRangeVisible,

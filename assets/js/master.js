@@ -48,6 +48,15 @@
         battleAttackerEntity: document.getElementById('battle-attacker-entity'),
         battleTargetEntity: document.getElementById('battle-target-entity'),
         battleHideButton: document.getElementById('btn-hide-battle-overlay'),
+        diceOverlayForm: document.getElementById('dice-overlay-form'),
+        diceEntity: document.getElementById('dice-entity'),
+        diceLabel: document.getElementById('dice-label'),
+        diceType: document.getElementById('dice-type'),
+        diceCount: document.getElementById('dice-count'),
+        diceValuesFields: document.getElementById('dice-values-fields'),
+        diceModifier: document.getElementById('dice-modifier'),
+        diceTotal: document.getElementById('dice-total'),
+        diceHideButton: document.getElementById('btn-hide-dice-overlay'),
     };
 
     let latestState = null;
@@ -105,6 +114,78 @@
         };
         return labels[side] || side || '-';
     }
+
+    const DICE_MAX_VALUES = {
+        d4: 4,
+        d6: 6,
+        d8: 8,
+        d10: 10,
+        d12: 12,
+        d20: 20,
+    };
+
+    function getDiceMaxValue() {
+        return DICE_MAX_VALUES[stateEls.diceType?.value] || 6;
+    }
+
+    function renderDiceValueInputs() {
+        if (!stateEls.diceValuesFields) {
+            return;
+        }
+        const maxValue = getDiceMaxValue();
+        const count = Math.max(1, Number(stateEls.diceCount?.value || 1));
+        const previousValues = Array.from(stateEls.diceValuesFields.querySelectorAll('input')).map(input => input.value);
+        stateEls.diceValuesFields.innerHTML = '';
+
+        for (let i = 0; i < count; i += 1) {
+            const field = document.createElement('div');
+            field.className = 'dice-value-item';
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.min = '1';
+            input.max = String(maxValue);
+            input.value = previousValues[i] || '';
+            input.placeholder = `Куб ${i + 1}`;
+            input.dataset.index = String(i);
+            input.className = 'dice-value-input';
+            input.addEventListener('input', () => {
+                const value = Number(input.value || 0);
+                if (value > maxValue) {
+                    input.value = String(maxValue);
+                }
+                if (value < 0) {
+                    input.value = '1';
+                }
+                recalculateDiceTotal();
+            });
+            field.appendChild(input);
+            stateEls.diceValuesFields.appendChild(field);
+        }
+        recalculateDiceTotal();
+    }
+
+    function recalculateDiceTotal() {
+        if (!stateEls.diceTotal || !stateEls.diceValuesFields) {
+            return;
+        }
+        const values = Array.from(stateEls.diceValuesFields.querySelectorAll('input')).map(input => Number(input.value || 0));
+        const modifier = Number(stateEls.diceModifier?.value || 0);
+        const total = values.reduce((acc, value) => acc + (Number.isFinite(value) ? value : 0), 0) + modifier;
+        stateEls.diceTotal.value = String(total);
+    }
+
+    function getDiceValuesFromInputs() {
+        const maxValue = getDiceMaxValue();
+        const values = Array.from(stateEls.diceValuesFields.querySelectorAll('input')).map((input, index) => {
+            const value = Number(input.value);
+            if (!Number.isInteger(value) || value < 1 || value > maxValue) {
+                throw new Error(`Введите корректное значение для куба ${index + 1}: 1..${maxValue}`);
+            }
+            return value;
+        });
+        return values;
+    }
+
 
     function setEntityEditing(entity = null) {
         editingEntityId = entity ? Number(entity.id) : null;
@@ -379,6 +460,17 @@
         }
         if (currentTarget && entities.some(e => String(e.id) === currentTarget)) {
             stateEls.battleTargetEntity.value = currentTarget;
+        }
+
+        const currentDiceEntity = state.dice_overlay?.entity?.id
+            ? String(state.dice_overlay.entity.id)
+            : stateEls.diceEntity?.value;
+        const diceOptions = ['<option value="">Без сущности</option>', ...entities.map(e => `<option value="${e.id}">${DndCommon.escapeHtml(e.name)} (${DndCommon.escapeHtml(formatSideLabel(e.side))})</option>`)];
+        if (stateEls.diceEntity) {
+            stateEls.diceEntity.innerHTML = diceOptions.join('');
+            if (currentDiceEntity && entities.some(e => String(e.id) === currentDiceEntity)) {
+                stateEls.diceEntity.value = currentDiceEntity;
+            }
         }
     }
 
@@ -739,6 +831,53 @@
             await postForm('/api/hide_battle_overlay.php', {});
         });
 
+        stateEls.diceType?.addEventListener('change', renderDiceValueInputs);
+        stateEls.diceCount?.addEventListener('input', () => {
+            stateEls.diceCount.value = String(Math.min(20, Math.max(1, Number(stateEls.diceCount.value || 1))));
+            renderDiceValueInputs();
+        });
+        stateEls.diceModifier?.addEventListener('input', recalculateDiceTotal);
+
+        stateEls.diceOverlayForm?.addEventListener('submit', async e => {
+            pauseUpdates(2200);
+            e.preventDefault();
+            const diceCount = Math.max(1, Number(stateEls.diceCount.value || 1));
+            let diceValues = [];
+            try {
+                diceValues = getDiceValuesFromInputs();
+            } catch (error) {
+                alert(error.message || 'Проверьте значения кубов.');
+                return;
+            }
+
+            if (diceValues.length !== diceCount) {
+                alert('Количество значений кубов не совпадает с выбранным количеством.');
+                return;
+            }
+
+            const modifier = Number(stateEls.diceModifier.value || 0);
+            const payload = {
+                label: (stateEls.diceLabel.value || '').trim(),
+                dice_type: stateEls.diceType.value,
+                dice_count: diceCount,
+                modifier: Number.isInteger(modifier) ? modifier : 0,
+            };
+            const entityId = Number(stateEls.diceEntity.value || 0);
+            if (entityId > 0) {
+                payload.entity_id = entityId;
+            }
+
+            const form = new FormData();
+            Object.entries(payload).forEach(([key, value]) => form.append(key, value));
+            diceValues.forEach(value => form.append('dice_values[]', String(value)));
+            await postForm('/api/show_dice_overlay.php', form, true);
+        });
+
+        stateEls.diceHideButton?.addEventListener('click', async () => {
+            pauseUpdates(2200);
+            await postForm('/api/hide_dice_overlay.php', {});
+        });
+
         document.getElementById('add-icon-form').addEventListener('submit', async e => {
             pauseUpdates(2200);
             e.preventDefault();
@@ -930,6 +1069,8 @@
             hoverCell = null;
             stateEls.hoverLayer.innerHTML = '';
         });
+
+        renderDiceValueInputs();
 
         const notes = document.getElementById('notes');
         notes.value = localStorage.getItem('master_notes') || '';
