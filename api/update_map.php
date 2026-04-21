@@ -9,6 +9,7 @@ $id = post_int('id');
 $title = post_string('title');
 $gridCols = post_int('grid_cols');
 $gridRows = post_int('grid_rows');
+$hasMapGridColumns = map_grid_columns_available($pdo);
 
 if ($id === null) {
     api_error('id_required');
@@ -25,6 +26,9 @@ if ($gridCols !== null && $gridCols < 1) {
 if ($gridRows !== null && $gridRows < 1) {
     api_error('invalid_grid_rows');
 }
+if (!$hasMapGridColumns && ($gridCols !== null || $gridRows !== null)) {
+    api_error('grid_columns_not_migrated', 409);
+}
 
 $sets = [];
 $params = ['id' => $id];
@@ -32,11 +36,11 @@ if ($title !== null) {
     $sets[] = 'title = :title';
     $params['title'] = trim($title);
 }
-if ($gridCols !== null) {
+if ($hasMapGridColumns && $gridCols !== null) {
     $sets[] = 'grid_cols = :grid_cols';
     $params['grid_cols'] = $gridCols;
 }
-if ($gridRows !== null) {
+if ($hasMapGridColumns && $gridRows !== null) {
     $sets[] = 'grid_rows = :grid_rows';
     $params['grid_rows'] = $gridRows;
 }

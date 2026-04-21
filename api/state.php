@@ -6,13 +6,18 @@ require __DIR__ . '/../inc/db.php';
 require __DIR__ . '/../inc/helpers.php';
 
 $config = require __DIR__ . '/../inc/config.php';
+$hasMapGridColumns = map_grid_columns_available($pdo);
 
-$stateStmt = $pdo->query(
-    'SELECT gs.mode, gs.grid_enabled, gs.grid_cell_size, gs.active_map_id, m.id AS map_id, m.title AS map_title, m.file_path AS map_file_path, m.grid_cols AS map_grid_cols, m.grid_rows AS map_grid_rows
-     FROM game_state gs
-     LEFT JOIN maps m ON m.id = gs.active_map_id
-     WHERE gs.id = 1'
-);
+$stateSql = $hasMapGridColumns
+    ? 'SELECT gs.mode, gs.grid_enabled, gs.grid_cell_size, gs.active_map_id, m.id AS map_id, m.title AS map_title, m.file_path AS map_file_path, m.grid_cols AS map_grid_cols, m.grid_rows AS map_grid_rows
+       FROM game_state gs
+       LEFT JOIN maps m ON m.id = gs.active_map_id
+       WHERE gs.id = 1'
+    : 'SELECT gs.mode, gs.grid_enabled, gs.grid_cell_size, gs.active_map_id, m.id AS map_id, m.title AS map_title, m.file_path AS map_file_path
+       FROM game_state gs
+       LEFT JOIN maps m ON m.id = gs.active_map_id
+       WHERE gs.id = 1';
+$stateStmt = $pdo->query($stateSql);
 $state = $stateStmt->fetch() ?: ['mode' => 'prep', 'grid_enabled' => 1, 'grid_cell_size' => 70, 'active_map_id' => null];
 
 $dcStmt = $pdo->query('SELECT dc_value, visible_until FROM dc_state WHERE id = 1');

@@ -56,3 +56,21 @@ function api_ok(array $data = []): void
 {
     json_response(['ok' => true, 'data' => $data]);
 }
+
+function map_grid_columns_available(PDO $pdo): bool
+{
+    static $cached = null;
+    if ($cached !== null) {
+        return $cached;
+    }
+
+    try {
+        $hasCols = $pdo->query("SHOW COLUMNS FROM maps LIKE 'grid_cols'")->fetch();
+        $hasRows = $pdo->query("SHOW COLUMNS FROM maps LIKE 'grid_rows'")->fetch();
+        $cached = (bool) $hasCols && (bool) $hasRows;
+    } catch (Throwable $e) {
+        $cached = false;
+    }
+
+    return $cached;
+}

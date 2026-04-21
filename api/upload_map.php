@@ -44,14 +44,24 @@ if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
 }
 
 $filePath = rtrim($config['app']['uploads_maps_url'], '/') . '/' . $fileName;
-$stmt = $pdo->prepare('INSERT INTO maps (title, file_path, original_name, grid_cols, grid_rows) VALUES (:title, :file_path, :original_name, :grid_cols, :grid_rows)');
-$stmt->execute([
-    'title' => $title,
-    'file_path' => $filePath,
-    'original_name' => $file['name'],
-    'grid_cols' => $gridCols,
-    'grid_rows' => $gridRows,
-]);
+$hasMapGridColumns = map_grid_columns_available($pdo);
+if ($hasMapGridColumns) {
+    $stmt = $pdo->prepare('INSERT INTO maps (title, file_path, original_name, grid_cols, grid_rows) VALUES (:title, :file_path, :original_name, :grid_cols, :grid_rows)');
+    $stmt->execute([
+        'title' => $title,
+        'file_path' => $filePath,
+        'original_name' => $file['name'],
+        'grid_cols' => $gridCols,
+        'grid_rows' => $gridRows,
+    ]);
+} else {
+    $stmt = $pdo->prepare('INSERT INTO maps (title, file_path, original_name) VALUES (:title, :file_path, :original_name)');
+    $stmt->execute([
+        'title' => $title,
+        'file_path' => $filePath,
+        'original_name' => $file['name'],
+    ]);
+}
 
 $id = (int) $pdo->lastInsertId();
 api_ok(['map' => ['id' => $id, 'title' => $title, 'file_path' => $filePath, 'grid_cols' => $gridCols, 'grid_rows' => $gridRows]]);
