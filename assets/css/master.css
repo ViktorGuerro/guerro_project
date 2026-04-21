@@ -49,9 +49,23 @@
 }
 .master-controls .form-row {
     margin-bottom: 6px;
+    align-items: flex-start;
 }
 .master-controls .form-row > * {
     min-width: 0;
+}
+.master-controls .form-field {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+}
+.master-controls .field-label {
+    font-size: 12px;
+    line-height: 1.3;
+    font-weight: 600;
+    color: #b8b8b8;
+    margin-bottom: 5px;
 }
 .master-controls input,
 .master-controls select,
@@ -66,6 +80,9 @@
     gap: 6px;
 }
 .form-row-split > input {
+    flex: 1;
+}
+.form-row-split > .form-field {
     flex: 1;
 }
 .inline-adjust {

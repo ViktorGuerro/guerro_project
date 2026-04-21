@@ -22,8 +22,18 @@
         <div class="panel">
             <h3>Карты</h3>
             <form id="map-upload-form" enctype="multipart/form-data">
-                <div class="form-row"><input type="text" name="title" placeholder="Название карты" required></div>
-                <div class="form-row"><input type="file" name="map_file" accept=".jpg,.jpeg,.png,.webp" required></div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="map-title" class="field-label">Название карты</label>
+                        <input id="map-title" type="text" name="title" placeholder="Название карты" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="map-file" class="field-label">Файл карты</label>
+                        <input id="map-file" type="file" name="map_file" accept=".jpg,.jpeg,.png,.webp" required>
+                    </div>
+                </div>
                 <div class="form-row"><button type="submit">Загрузить</button></div>
             </form>
             <div id="map-list"></div>
@@ -35,7 +45,12 @@
                 <div class="form-row">
                     <label><input id="grid-enabled" name="grid_enabled" type="checkbox" checked> Показывать сетку</label>
                 </div>
-                <div class="form-row"><input id="grid-cell-size" name="grid_cell_size" type="number" min="20" max="300" value="70" placeholder="Размер клетки, px"></div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="grid-cell-size" class="field-label">Размер ячейки, px</label>
+                        <input id="grid-cell-size" name="grid_cell_size" type="number" min="20" max="300" value="70" placeholder="Размер клетки, px">
+                    </div>
+                </div>
                 <div class="form-row"><button type="submit">Применить</button></div>
             </form>
         </div>
@@ -43,7 +58,12 @@
         <div class="panel">
             <h3>Сложность</h3>
             <form id="dc-show-form">
-                <div class="form-row"><input id="dc-input" name="dc_value" type="number" min="1" max="99" placeholder="1-99" required></div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="dc-input" class="field-label">Сложность</label>
+                        <input id="dc-input" name="dc_value" type="number" min="1" max="99" placeholder="1-99" required>
+                    </div>
+                </div>
                 <div class="form-row"><button type="submit">Показать</button><button type="button" id="btn-hide-dc" class="secondary">Скрыть</button></div>
             </form>
         </div>
@@ -52,12 +72,48 @@
             <h3>Герои и враги</h3>
             <form id="entity-form" enctype="multipart/form-data">
                 <input type="hidden" id="entity-id" name="id" value="">
-                <div class="form-row"><input id="entity-name" name="name" placeholder="Имя" required></div>
-                <div class="form-row"><select id="entity-side" name="side"><option value="hero">hero</option><option value="enemy">enemy</option></select></div>
-                <div class="form-row"><input id="entity-file" type="file" name="entity_file" accept=".jpg,.jpeg,.png,.webp"></div>
-                <div class="form-row form-row-split"><input id="entity-ac" name="armor_class" type="number" placeholder="КД"><div class="inline-adjust"><button type="button" class="quick-adjust" data-target="entity-ac" data-delta="-1">-1</button><button type="button" class="quick-adjust" data-target="entity-ac" data-delta="1">+1</button></div></div>
-                <div class="form-row form-row-split"><input id="entity-hp-current" name="hp_current" type="number" placeholder="ХП текущие"><div class="inline-adjust"><button type="button" class="quick-adjust" data-target="entity-hp-current" data-delta="-5">-5</button><button type="button" class="quick-adjust" data-target="entity-hp-current" data-delta="-1">-1</button><button type="button" class="quick-adjust" data-target="entity-hp-current" data-delta="1">+1</button><button type="button" class="quick-adjust" data-target="entity-hp-current" data-delta="5">+5</button></div></div>
-                <div class="form-row"><input id="entity-hp-max" name="hp_max" type="number" placeholder="ХП максимум"><input id="entity-sort" name="sort_order" type="number" value="0" placeholder="Порядок"></div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="entity-name" class="field-label">Имя</label>
+                        <input id="entity-name" name="name" placeholder="Имя" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="entity-side" class="field-label">Сторона</label>
+                        <select id="entity-side" name="side"><option value="hero">hero</option><option value="enemy">enemy</option></select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="entity-file" class="field-label">Миниатюра</label>
+                        <input id="entity-file" type="file" name="entity_file" accept=".jpg,.jpeg,.png,.webp">
+                    </div>
+                </div>
+                <div class="form-row form-row-split">
+                    <div class="form-field">
+                        <label for="entity-ac" class="field-label">Класс доспеха</label>
+                        <input id="entity-ac" name="armor_class" type="number" placeholder="КД">
+                    </div>
+                    <div class="inline-adjust"><button type="button" class="quick-adjust" data-target="entity-ac" data-delta="-1">-1</button><button type="button" class="quick-adjust" data-target="entity-ac" data-delta="1">+1</button></div>
+                </div>
+                <div class="form-row form-row-split">
+                    <div class="form-field">
+                        <label for="entity-hp-current" class="field-label">Хиты текущие</label>
+                        <input id="entity-hp-current" name="hp_current" type="number" placeholder="ХП текущие">
+                    </div>
+                    <div class="inline-adjust"><button type="button" class="quick-adjust" data-target="entity-hp-current" data-delta="-5">-5</button><button type="button" class="quick-adjust" data-target="entity-hp-current" data-delta="-1">-1</button><button type="button" class="quick-adjust" data-target="entity-hp-current" data-delta="1">+1</button><button type="button" class="quick-adjust" data-target="entity-hp-current" data-delta="5">+5</button></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="entity-hp-max" class="field-label">Хиты максимум</label>
+                        <input id="entity-hp-max" name="hp_max" type="number" placeholder="ХП максимум">
+                    </div>
+                    <div class="form-field">
+                        <label for="entity-sort" class="field-label">Порядок</label>
+                        <input id="entity-sort" name="sort_order" type="number" value="0" placeholder="Порядок">
+                    </div>
+                </div>
                 <div class="form-row"><label><input id="entity-visible" type="checkbox" name="is_visible" value="1" checked> Видимость</label></div>
                 <div class="form-row">
                     <button id="entity-submit" type="submit">Сохранить сущность</button>
@@ -70,9 +126,28 @@
         <div class="panel">
             <h3>Добавление иконки</h3>
             <form id="add-icon-form">
-                <div class="form-row"><select id="add-icon-entity"></select></div>
-                <div class="form-row"><input id="add-icon-grid-x" type="number" min="0" value="0" placeholder="grid_x"><input id="add-icon-grid-y" type="number" min="0" value="0" placeholder="grid_y"></div>
-                <div class="form-row"><input id="add-icon-size-cells" type="number" min="1" max="4" value="1" placeholder="size_cells"></div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="add-icon-entity" class="field-label">Сущность</label>
+                        <select id="add-icon-entity"></select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="add-icon-grid-x" class="field-label">Позиция X</label>
+                        <input id="add-icon-grid-x" type="number" min="0" value="0" placeholder="grid_x">
+                    </div>
+                    <div class="form-field">
+                        <label for="add-icon-grid-y" class="field-label">Позиция Y</label>
+                        <input id="add-icon-grid-y" type="number" min="0" value="0" placeholder="grid_y">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="add-icon-size-cells" class="field-label">Размер, клеток</label>
+                        <input id="add-icon-size-cells" type="number" min="1" max="4" value="1" placeholder="size_cells">
+                    </div>
+                </div>
                 <div class="form-row"><button type="submit">Добавить на карту</button></div>
             </form>
         </div>
@@ -95,8 +170,22 @@
                 </div>
             </div>
             <form id="selected-icon-form">
-                <div class="form-row"><input id="selected-icon-grid-x" type="number" min="0" placeholder="grid_x"><input id="selected-icon-grid-y" type="number" min="0" placeholder="grid_y"></div>
-                <div class="form-row"><input id="selected-icon-size-cells" type="number" min="1" max="4" placeholder="size_cells"></div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="selected-icon-grid-x" class="field-label">Позиция X</label>
+                        <input id="selected-icon-grid-x" type="number" min="0" placeholder="grid_x">
+                    </div>
+                    <div class="form-field">
+                        <label for="selected-icon-grid-y" class="field-label">Позиция Y</label>
+                        <input id="selected-icon-grid-y" type="number" min="0" placeholder="grid_y">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="selected-icon-size-cells" class="field-label">Размер, клеток</label>
+                        <input id="selected-icon-size-cells" type="number" min="1" max="4" placeholder="size_cells">
+                    </div>
+                </div>
                 <div class="form-row">
                     <button id="selected-icon-center" type="button" class="secondary">Расположить по центру</button>
                 </div>
@@ -122,7 +211,10 @@
 
         <div class="panel">
             <h3>Заметки мастера</h3>
-            <textarea id="notes" placeholder="Только локально в браузере"></textarea>
+            <div class="form-field">
+                <label for="notes" class="field-label">Заметки</label>
+                <textarea id="notes" placeholder="Только локально в браузере"></textarea>
+            </div>
         </div>
     </div>
 
