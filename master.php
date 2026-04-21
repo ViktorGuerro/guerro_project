@@ -98,6 +98,9 @@
                 <div class="form-row"><input id="selected-icon-grid-x" type="number" min="0" placeholder="grid_x"><input id="selected-icon-grid-y" type="number" min="0" placeholder="grid_y"></div>
                 <div class="form-row"><input id="selected-icon-size-cells" type="number" min="1" max="4" placeholder="size_cells"></div>
                 <div class="form-row">
+                    <button id="selected-icon-center" type="button" class="secondary">Расположить по центру</button>
+                </div>
+                <div class="form-row">
                     <button type="submit">Сохранить</button>
                     <button id="selected-icon-delete" type="button" class="danger">Удалить иконку</button>
                 </div>
@@ -105,10 +108,16 @@
         </div>
 
         <div class="panel">
+            <h3>Иконки на сцене</h3>
+            <div id="scene-icons-list" class="scene-icons-list"></div>
+        </div>
+
+        <div class="panel">
             <h3>Диагностика сцены</h3>
             <div class="form-row">
-                <label><input id="scene-debug-toggle" type="checkbox"> Показать диагностический слой</label>
+                <label><input id="scene-debug-toggle" type="checkbox"> Диагностика сцены</label>
             </div>
+            <div id="scene-debug-info" class="scene-debug-info">Debug выключен</div>
         </div>
 
         <div class="panel">

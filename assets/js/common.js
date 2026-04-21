@@ -44,29 +44,54 @@
             onIconClick = null,
             selectedIconId = null,
             showSelection = false,
+            debug = false,
+            debugFormatter = null,
         } = options;
 
         layer.innerHTML = '';
-        icons.filter(i => i.is_visible).forEach(icon => {
+        const total = Array.isArray(icons) ? icons.length : 0;
+        const visibleIcons = (icons || []).filter(icon => Number(icon.is_visible) === 1);
+        let rendered = 0;
+
+        visibleIcons.forEach(icon => {
             const div = document.createElement('div');
             div.className = 'icon';
             div.dataset.id = icon.id;
-            div.style.left = `${icon.grid_x * cellSize}px`;
-            div.style.top = `${icon.grid_y * cellSize}px`;
-            div.style.width = `${cellSize * icon.size_cells}px`;
-            div.style.height = `${cellSize * icon.size_cells}px`;
+            const gridX = Number.isFinite(Number(icon.grid_x)) ? Number(icon.grid_x) : 0;
+            const gridY = Number.isFinite(Number(icon.grid_y)) ? Number(icon.grid_y) : 0;
+            const sizeCells = Math.max(1, Number(icon.size_cells) || 1);
+            div.style.left = `${gridX * cellSize}px`;
+            div.style.top = `${gridY * cellSize}px`;
+            div.style.width = `${cellSize * sizeCells}px`;
+            div.style.height = `${cellSize * sizeCells}px`;
 
             if (showSelection && selectedIconId !== null && Number(icon.id) === Number(selectedIconId)) {
                 div.classList.add('selected');
             }
 
+            const fallbackText = (icon.name || '?').slice(0, 1).toUpperCase() || '?';
             if (icon.image_path) {
                 const img = document.createElement('img');
                 img.src = icon.image_path;
                 img.alt = icon.name || '';
+                img.onerror = () => {
+                    img.remove();
+                    div.classList.add('icon-fallback');
+                    div.textContent = fallbackText;
+                };
                 div.appendChild(img);
             } else {
-                div.textContent = (icon.name || '?').slice(0, 1).toUpperCase();
+                div.classList.add('icon-fallback');
+                div.textContent = fallbackText;
+            }
+
+            if (debug) {
+                const label = document.createElement('span');
+                label.className = 'icon-debug-label';
+                label.textContent = typeof debugFormatter === 'function'
+                    ? debugFormatter(icon)
+                    : `#${icon.id} (${gridX},${gridY}) s${sizeCells}`;
+                div.appendChild(label);
             }
 
             if (interactive) {
@@ -81,12 +106,15 @@
             }
 
             layer.appendChild(div);
+            rendered += 1;
         });
 
         if (interactive && typeof onDrop === 'function') {
             layer.ondragover = e => e.preventDefault();
             layer.ondrop = onDrop;
         }
+
+        return { total, visible: visibleIcons.length, rendered };
     }
 
 
@@ -103,6 +131,7 @@
             icons,
             iconOptions = {},
             onSceneMetrics = null,
+            onImageLoad = null,
         } = config;
 
         if (!stage || !sceneLayer || !mapImage || !gridLayer || !iconsLayer) {
@@ -112,6 +141,11 @@
         if (mapPath) {
             if (mapImage.getAttribute('src') !== mapPath) {
                 mapImage.src = mapPath;
+                mapImage.onload = () => {
+                    if (typeof onImageLoad === 'function') {
+                        onImageLoad();
+                    }
+                };
             }
         } else {
             mapImage.removeAttribute('src');
@@ -135,7 +169,7 @@
         sceneLayer.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
 
         renderGrid(gridLayer, gridCellSize, Boolean(gridEnabled));
-        renderIcons(iconsLayer, icons, gridCellSize, iconOptions);
+        const iconStats = renderIcons(iconsLayer, icons, gridCellSize, iconOptions);
 
         const metrics = {
             mapWidth,
@@ -145,6 +179,7 @@
             scale,
             offsetX,
             offsetY,
+            iconStats,
         };
 
         if (typeof onSceneMetrics === 'function') {

@@ -31,7 +31,10 @@
         selectedIconGridY: document.getElementById('selected-icon-grid-y'),
         selectedIconSizeCells: document.getElementById('selected-icon-size-cells'),
         selectedIconDelete: document.getElementById('selected-icon-delete'),
+        selectedIconCenter: document.getElementById('selected-icon-center'),
+        sceneIconsList: document.getElementById('scene-icons-list'),
         sceneDebugToggle: document.getElementById('scene-debug-toggle'),
+        sceneDebugInfo: document.getElementById('scene-debug-info'),
         debugLayer: document.getElementById('master-debug-layer'),
     };
 
@@ -109,11 +112,49 @@
             return;
         }
 
+        const entity = latestState?.entities.find(e => Number(e.id) === Number(icon.entity_id));
         stateEls.selectedIconPanel.classList.remove('hidden');
-        stateEls.selectedIconMeta.textContent = `#${icon.id} — ${icon.name || 'Без имени'} (${icon.grid_x}, ${icon.grid_y})`;
+        stateEls.selectedIconMeta.textContent = [
+            `#${icon.id} — ${icon.name || 'Без имени'} (${entity?.side || '-'})`,
+            `Координаты: (${icon.grid_x}, ${icon.grid_y}), size ${icon.size_cells}`,
+            `image_path: ${icon.image_path ? 'есть' : 'нет'}`
+        ].join(' • ');
         stateEls.selectedIconGridX.value = icon.grid_x;
         stateEls.selectedIconGridY.value = icon.grid_y;
         stateEls.selectedIconSizeCells.value = icon.size_cells;
+    }
+
+    function getSceneCenterCell(state, metrics, icon = null) {
+        const sceneWidth = metrics?.mapWidth || stateEls.sceneLayer.offsetWidth || 1;
+        const sceneHeight = metrics?.mapHeight || stateEls.sceneLayer.offsetHeight || 1;
+        const cols = Math.max(1, Math.floor(sceneWidth / state.grid_cell_size));
+        const rows = Math.max(1, Math.floor(sceneHeight / state.grid_cell_size));
+        const centerX = Math.floor(cols / 2);
+        const centerY = Math.floor(rows / 2);
+
+        return {
+            grid_x: Math.max(0, centerX),
+            grid_y: Math.max(0, centerY),
+            size_cells: Number(icon?.size_cells || 1),
+        };
+    }
+
+    async function centerIconById(iconId, metrics = null) {
+        if (!latestState) {
+            return;
+        }
+        const icon = latestState.icons.find(i => Number(i.id) === Number(iconId));
+        if (!icon) {
+            return;
+        }
+        const center = getSceneCenterCell(latestState, metrics, icon);
+        await postForm('/api/update_icon.php', {
+            id: icon.id,
+            grid_x: center.grid_x,
+            grid_y: center.grid_y,
+            size_cells: center.size_cells,
+        });
+        selectedIconId = Number(icon.id);
     }
 
     function fillMapList() {
@@ -159,6 +200,27 @@
         }
     }
 
+    function renderSceneIconsList(state, metrics) {
+        const icons = state.icons || [];
+        if (!icons.length) {
+            stateEls.sceneIconsList.innerHTML = '<div class="scene-icon-meta">Иконок нет.</div>';
+            return;
+        }
+
+        stateEls.sceneIconsList.innerHTML = icons.map(icon => {
+            const entity = state.entities.find(e => Number(e.id) === Number(icon.entity_id));
+            const selectedClass = Number(icon.id) === Number(selectedIconId) ? ' selected' : '';
+            return `<div class="scene-icon-row${selectedClass}" data-id="${icon.id}">
+                <div class="scene-icon-meta">#${icon.id} ${DndCommon.escapeHtml(icon.name || 'Без имени')} (${DndCommon.escapeHtml(entity?.side || '-')}) • (${icon.grid_x}, ${icon.grid_y}) • size ${icon.size_cells} • visible ${Number(icon.is_visible) === 1 ? 'yes' : 'no'}</div>
+                <div class="scene-icon-actions">
+                    <button type="button" class="scene-select secondary" data-id="${icon.id}">Выбрать</button>
+                    <button type="button" class="scene-center secondary" data-id="${icon.id}">В центр</button>
+                    <button type="button" class="scene-delete danger" data-id="${icon.id}">Удалить</button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
     function render(state) {
         latestState = state;
 
@@ -181,6 +243,7 @@
             setSelectedIcon(selected);
         }
 
+        const isDebug = Boolean(stateEls.sceneDebugToggle?.checked);
         const metrics = DndCommon.renderScene({
             stage: stateEls.mapStage,
             sceneLayer: stateEls.sceneLayer,
@@ -195,6 +258,8 @@
                 interactive: true,
                 selectedIconId,
                 showSelection: true,
+                debug: isDebug,
+                debugFormatter: icon => `#${icon.id} ${icon.name || 'Без имени'} (${icon.grid_x},${icon.grid_y}) s${icon.size_cells}`,
                 onIconClick: icon => setSelectedIcon(icon),
                 onDrop: async e => {
                     e.preventDefault();
@@ -208,9 +273,11 @@
                     selectedIconId = id;
                     render(await DndCommon.fetchState());
                 }
-            }
+            },
+            onImageLoad: async () => render(await DndCommon.fetchState()),
         });
 
+        renderSceneIconsList(state, metrics);
         renderSceneDebug(state, metrics);
     }
 
@@ -220,13 +287,15 @@
         if (!enabled || !metrics || !state.active_map) {
             stateEls.debugLayer.classList.add('hidden');
             stateEls.debugLayer.innerHTML = '';
+            stateEls.sceneDebugInfo.textContent = 'Debug выключен';
             return;
         }
 
         stateEls.debugLayer.classList.remove('hidden');
         const cols = Math.ceil(metrics.mapWidth / state.grid_cell_size);
         const rows = Math.ceil(metrics.mapHeight / state.grid_cell_size);
-        const limit = 450;
+        const limit = 500;
+        const visibleIcons = state.icons.filter(icon => Number(icon.is_visible) === 1);
 
         const labels = [];
         for (let y = 0; y < rows; y += 1) {
@@ -241,7 +310,22 @@
             }
         }
 
+        visibleIcons.forEach(icon => {
+            const entity = state.entities.find(e => Number(e.id) === Number(icon.entity_id));
+            labels.push(`<div class="debug-icon-box" style="left:${Number(icon.grid_x) * state.grid_cell_size}px;top:${Number(icon.grid_y) * state.grid_cell_size}px;width:${Number(icon.size_cells) * state.grid_cell_size}px;height:${Number(icon.size_cells) * state.grid_cell_size}px">
+                <span class="debug-icon-meta">#${icon.id} ${DndCommon.escapeHtml(icon.name || 'Без имени')} (${DndCommon.escapeHtml(entity?.side || '-')}) (${icon.grid_x},${icon.grid_y}) size ${icon.size_cells}</span>
+            </div>`);
+        });
+
         stateEls.debugLayer.innerHTML = labels.join('');
+        stateEls.sceneDebugInfo.innerHTML = [
+            `Сцена: ${metrics.mapWidth}x${metrics.mapHeight}px`,
+            `Grid cell: ${state.grid_cell_size}px`,
+            `Активная карта: ${DndCommon.escapeHtml(state.active_map?.title || '-')}`,
+            `Icons state: ${state.icons.length}`,
+            `Visible: ${visibleIcons.length}`,
+            `DOM rendered: ${metrics.iconStats?.rendered ?? 0}`,
+        ].join('<br>');
     }
 
     function changeInputValue(inputId, delta, min = null, max = null) {
@@ -445,6 +529,50 @@
             if (confirm('Удалить иконку?')) {
                 await postForm('/api/delete_icon.php', { id: selectedIconId });
                 setSelectedIcon(null);
+            }
+        });
+        stateEls.selectedIconCenter.addEventListener('click', async () => {
+            pauseUpdates(2200);
+            if (!selectedIconId) {
+                return;
+            }
+            await centerIconById(selectedIconId);
+        });
+
+        stateEls.sceneIconsList.addEventListener('click', async e => {
+            const target = e.target;
+            if (!(target instanceof HTMLElement)) {
+                return;
+            }
+
+            const iconId = Number(target.dataset.id);
+            if (!iconId) {
+                return;
+            }
+
+            if (target.classList.contains('scene-select')) {
+                const icon = latestState?.icons.find(i => Number(i.id) === iconId) || null;
+                if (icon) {
+                    setSelectedIcon(icon);
+                    render(latestState);
+                }
+                return;
+            }
+
+            if (target.classList.contains('scene-center')) {
+                pauseUpdates(2200);
+                await centerIconById(iconId);
+                return;
+            }
+
+            if (target.classList.contains('scene-delete')) {
+                pauseUpdates(2200);
+                if (confirm('Удалить иконку?')) {
+                    await postForm('/api/delete_icon.php', { id: iconId });
+                    if (selectedIconId === iconId) {
+                        setSelectedIcon(null);
+                    }
+                }
             }
         });
 
