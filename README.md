@@ -86,6 +86,7 @@ chown -R www-data:www-data uploads
 - `/master.php` — экран мастера
 - `/players.php` — экран игроков
 - `/viewers.php` — экран зрителей
+- `/operator.php` — экран оператора для управления СЛ с телефона
 
 ## API (кратко)
 

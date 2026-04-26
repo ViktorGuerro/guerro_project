@@ -1,0 +1,96 @@
+.operator-page {
+    min-height: 100vh;
+    padding: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.operator-panel {
+    width: min(100%, 560px);
+    padding: 16px;
+}
+
+.operator-header h1 {
+    margin: 0;
+    font-size: 30px;
+    line-height: 1.15;
+}
+
+.operator-header p {
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-size: 18px;
+}
+
+.quick-dc {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.quick-dc-btn {
+    min-height: 52px;
+    font-size: 22px;
+    font-weight: 700;
+    border-radius: 10px;
+    transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
+}
+
+.quick-dc-btn:active {
+    transform: translateY(1px);
+}
+
+.quick-dc-btn.is-active {
+    box-shadow: 0 0 0 2px rgba(78, 137, 255, 0.8);
+    filter: brightness(1.1);
+}
+
+.quick-dc-btn.is-sending {
+    opacity: 0.75;
+}
+
+.operator-manual-form {
+    margin-top: 16px;
+}
+
+.operator-manual-form input {
+    width: 100%;
+    min-height: 52px;
+    margin-top: 6px;
+    font-size: 24px;
+    text-align: center;
+}
+
+.operator-actions {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.operator-actions button {
+    min-height: 52px;
+    font-size: 19px;
+    font-weight: 700;
+}
+
+.operator-status {
+    margin-top: 12px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #d8deff;
+}
+
+.operator-error {
+    margin-top: 8px;
+    color: #ff9c9c;
+    font-size: 15px;
+}
+
+@media (min-width: 390px) {
+    .quick-dc {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+}
